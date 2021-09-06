@@ -5,8 +5,9 @@ import (
 )
 
 type Encoder interface {
-	Reader(reader io.Reader)
-	Writer(writer io.Writer)
+	ResetReader(reader io.Reader)
+	ResetWriter(writer io.Writer)
+	Flush() error
 
 	ReadTopic() (string, error)
 	ReadData(data interface{}) error

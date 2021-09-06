@@ -10,7 +10,7 @@ import (
 
 type Upgrader websocket.Upgrader
 
-var DefaultUpgrader = Upgrader{
+var DefaultUpgrader = &Upgrader{
 	HandshakeTimeout: time.Second * 5,
 	ReadBufferSize:   units.Kilobyte * 65,
 	WriteBufferSize:  units.Kilobyte * 65,
@@ -19,15 +19,25 @@ var DefaultUpgrader = Upgrader{
 	// Other settings are nil & false
 }
 
-type listener struct {
+type websocketListener struct {
 	handler  *http.ServeMux
 	upgrader *Upgrader
 
-	handleConnection func(connection Connection)
-	handleError      func(err error)
+	onConnection func(connection Connection)
+	onError      func(err error)
 }
 
-func (l *listener) Listen(addr string) error {
+func NewWebsocketListener(handler *http.ServeMux, upgrader *Upgrader) Listener {
+	return &websocketListener{
+		handler:  handler,
+		upgrader: upgrader,
+
+		onConnection: func(connection Connection) {},
+		onError:      func(err error) {},
+	}
+}
+
+func (l *websocketListener) Listen(addr string) error {
 	var (
 		handler  = l.handler
 		upgrader = (*websocket.Upgrader)(l.upgrader)
@@ -38,45 +48,35 @@ func (l *listener) Listen(addr string) error {
 	}
 
 	if upgrader == nil {
-		upgrader = (*websocket.Upgrader)(&DefaultUpgrader)
+		upgrader = (*websocket.Upgrader)(DefaultUpgrader)
 	}
 
 	handler.HandleFunc(addr, func(w http.ResponseWriter, r *http.Request) {
 		inner, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			l.handleError(err)
+			l.onError(err)
 			return
 		}
 
-		l.handleConnection(newWsConnection(inner))
+		l.onConnection(newWebsocketConnection(inner))
 	})
 
 	return nil
 }
 
-func (l *listener) Close() error {
+func (l *websocketListener) Close() error {
 	// Only for interface realization
 	return nil
 }
 
-func (l *listener) OnConnection(h func(connection Connection)) {
-	l.handleConnection = h
+func (l *websocketListener) OnConnection(h func(connection Connection)) {
+	l.onConnection = h
 }
 
-func (l *listener) OnError(h func(err error)) {
-	l.handleError = h
+func (l *websocketListener) OnError(h func(err error)) {
+	l.onError = h
 }
 
-func (l *listener) OnClose(h func(err error)) {
+func (l *websocketListener) OnClose(h func(err error)) {
 	// Only for interface realization
-}
-
-func NewWsListener(handler *http.ServeMux, upgrader *Upgrader) Listener {
-	return &listener{
-		handler:  handler,
-		upgrader: upgrader,
-
-		handleConnection: func(connection Connection) {},
-		handleError:      func(err error) {},
-	}
 }

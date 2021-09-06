@@ -1,2 +1,6 @@
 .idea
 .DS_Store
+
+# For fast testing
+/test
+main.go

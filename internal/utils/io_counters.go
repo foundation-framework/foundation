@@ -40,7 +40,7 @@ func (w *ReadCounter) Read(data []byte) (int, error) {
 	return n, nil
 }
 
-func (w *ReadCounter) Reset(reader io.Reader) {
+func (w *ReadCounter) ResetReader(reader io.Reader) {
 	w.reader = reader
 }
 

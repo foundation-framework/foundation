@@ -15,7 +15,7 @@ var (
 	pingCheckTimeout = time.Second * 4
 )
 
-type wsConnection struct {
+type websocketConnection struct {
 	conn    *websocket.Conn
 	encoder Encoder
 
@@ -30,19 +30,37 @@ type wsConnection struct {
 	onError   func(err error)
 }
 
-func (c *wsConnection) SetEncoder(encoder Encoder) {
+func newWebsocketConnection(innerConn *websocket.Conn) Connection {
+	result := &websocketConnection{
+		conn:    innerConn,
+		encoder: NewMsgpackEncoder(),
+
+		pingTicker: time.NewTicker(pingTimeout),
+
+		onMessage: map[string]Handler{},
+		onClose:   func(err error) {},
+		onError:   func(err error) {},
+	}
+
+	go result.readLoop()
+	go result.pingLoop()
+
+	return result
+}
+
+func (c *websocketConnection) SetEncoder(encoder Encoder) {
 	c.encoder = encoder
 }
 
-func (c *wsConnection) LocalAddr() net.Addr {
+func (c *websocketConnection) LocalAddr() net.Addr {
 	return c.conn.LocalAddr()
 }
 
-func (c *wsConnection) RemoteAddr() net.Addr {
+func (c *websocketConnection) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
-func (c *wsConnection) Write(topic string, data interface{}) error {
+func (c *websocketConnection) Write(topic string, data interface{}) error {
 	c.writerMutex.Lock()
 	defer c.writerMutex.Unlock()
 
@@ -66,8 +84,8 @@ func (c *wsConnection) Write(topic string, data interface{}) error {
 	return nil
 }
 
-func (c *wsConnection) writeMessage(topic string, data interface{}) error {
-	c.encoder.Writer(&c.writeCounter)
+func (c *websocketConnection) writeMessage(topic string, data interface{}) error {
+	c.encoder.ResetWriter(&c.writeCounter)
 
 	if err := c.encoder.WriteTopic(topic); err != nil {
 		return err
@@ -77,17 +95,21 @@ func (c *wsConnection) writeMessage(topic string, data interface{}) error {
 		return err
 	}
 
+	if err := c.encoder.Flush(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (c *wsConnection) writePing() error {
+func (c *websocketConnection) writePing() error {
 	c.writerMutex.Lock()
 	defer c.writerMutex.Unlock()
 
 	return c.conn.WriteMessage(websocket.PingMessage, nil)
 }
 
-func (c *wsConnection) Close() error {
+func (c *websocketConnection) Close() error {
 	if err := c.conn.Close(); err != nil {
 		return err
 	}
@@ -96,27 +118,27 @@ func (c *wsConnection) Close() error {
 	return nil
 }
 
-func (c *wsConnection) BytesSent() uint64 {
+func (c *websocketConnection) BytesSent() uint64 {
 	return c.writeCounter.Count()
 }
 
-func (c *wsConnection) BytesReceived() uint64 {
+func (c *websocketConnection) BytesReceived() uint64 {
 	return c.readCounter.Count()
 }
 
-func (c *wsConnection) OnMessage(handler Handler) {
+func (c *websocketConnection) OnMessage(handler Handler) {
 	c.onMessage[handler.Topic()] = handler
 }
 
-func (c *wsConnection) OnClose(handler func(err error)) {
+func (c *websocketConnection) OnClose(handler func(err error)) {
 	c.onClose = handler
 }
 
-func (c *wsConnection) OnError(handler func(err error)) {
+func (c *websocketConnection) OnError(handler func(err error)) {
 	c.onError = handler
 }
 
-func (c *wsConnection) readLoop() {
+func (c *websocketConnection) readLoop() {
 	for {
 		messageType, reader, err := c.conn.NextReader()
 		if err != nil {
@@ -133,14 +155,14 @@ func (c *wsConnection) readLoop() {
 		c.pingTicker.Reset(pingTimeout)
 
 		if messageType == websocket.BinaryMessage {
-			c.readCounter.Reset(reader)
+			c.readCounter.ResetReader(reader)
 			c.readMessage()
 		}
 	}
 }
 
-func (c *wsConnection) readMessage() {
-	c.encoder.Reader(&c.readCounter)
+func (c *websocketConnection) readMessage() {
+	c.encoder.ResetReader(&c.readCounter)
 
 	topic, err := c.encoder.ReadTopic()
 	if err != nil {
@@ -172,7 +194,7 @@ func (c *wsConnection) readMessage() {
 	}()
 }
 
-func (c *wsConnection) pingLoop() {
+func (c *websocketConnection) pingLoop() {
 	c.conn.SetPongHandler(func(string) error {
 		return c.conn.SetReadDeadline(time.Time{})
 	})
@@ -180,39 +202,24 @@ func (c *wsConnection) pingLoop() {
 	for {
 		<-c.pingTicker.C
 
-		var (
-			writeErr    = c.writePing()
-			deadlineErr = c.conn.SetReadDeadline(time.Now().Add(pingCheckTimeout))
-		)
+		// Important:
+		// If the connection is closed, we will detect it inside the read loop
 
-		if writeErr != nil || deadlineErr != nil {
-			// If the connection is closed, we will detect it inside the read loop
+		if err := c.writePing(); err != nil {
+			return
+		}
+
+		if err := c.conn.SetReadDeadline(time.Now().Add(pingCheckTimeout)); err != nil {
 			return
 		}
 	}
 }
 
-func DialWs(addr string) (Connection, error) {
+func DialWebsocket(addr string) (Connection, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(addr, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return newWsConnection(conn), err
-}
-
-func newWsConnection(innerConn *websocket.Conn) Connection {
-	result := &wsConnection{
-		conn:       innerConn,
-		pingTicker: time.NewTicker(pingTimeout),
-
-		onMessage: map[string]Handler{},
-		onClose:   func(err error) {},
-		onError:   func(err error) {},
-	}
-
-	go result.readLoop()
-	go result.pingLoop()
-
-	return result
+	return newWebsocketConnection(conn), err
 }

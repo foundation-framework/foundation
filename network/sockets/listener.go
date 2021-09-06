@@ -3,7 +3,7 @@ package sockets
 // TODO: Documentation
 
 type Listener interface {
-	Listen(addr string) error
+	Listen(path string) error
 	Close() error
 
 	OnConnection(func(connection Connection))
