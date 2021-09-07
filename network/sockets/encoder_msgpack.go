@@ -50,6 +50,7 @@ func (e *msgpackEncoder) ReadData(data interface{}) error {
 }
 
 func (e *msgpackEncoder) WriteTopic(topic string) error {
+	// No msgp errors can be here
 	return e.writer.WriteString(topic)
 }
 

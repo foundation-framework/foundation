@@ -1,6 +1,7 @@
 package sockets
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -16,8 +17,9 @@ var (
 )
 
 type websocketConnection struct {
-	conn    *websocket.Conn
-	encoder Encoder
+	conn     *websocket.Conn
+	listener *websocketListener
+	encoder  Encoder
 
 	pingTicker  *time.Ticker
 	writerMutex sync.Mutex
@@ -25,21 +27,22 @@ type websocketConnection struct {
 	readCounter  utils.ReadCounter
 	writeCounter utils.WriteCounter
 
-	onMessage map[string]Handler
-	onClose   func(err error)
-	onError   func(err error)
+	onMessage map[string]MessageHandler
+	onClose   []func(err error)
+	onError   []func(err error)
 }
 
-func newWebsocketConnection(innerConn *websocket.Conn) Connection {
+func newWebsocketConnection(conn *websocket.Conn, listener *websocketListener) Connection {
 	result := &websocketConnection{
-		conn:    innerConn,
-		encoder: NewMsgpackEncoder(),
+		conn:     conn,
+		listener: listener,
+		encoder:  NewMsgpackEncoder(),
 
 		pingTicker: time.NewTicker(pingTimeout),
 
-		onMessage: map[string]Handler{},
-		onClose:   func(err error) {},
-		onError:   func(err error) {},
+		onMessage: map[string]MessageHandler{},
+		onClose:   []func(err error){},
+		onError:   []func(err error){},
 	}
 
 	go result.readLoop()
@@ -73,12 +76,12 @@ func (c *websocketConnection) Write(topic string, data interface{}) error {
 
 	if err := c.writeMessage(topic, data); err != nil {
 		// writeMessage can only return network errors that will be handled in readLoop
-		c.onError(err)
+		c.callErrorCb(err)
 	}
 
 	if err := writer.Close(); err != nil {
 		// Not critical error (any critical errors we handle inside read loop)
-		c.onError(err)
+		c.callErrorCb(err)
 	}
 
 	return nil
@@ -109,12 +112,11 @@ func (c *websocketConnection) writePing() error {
 	return c.conn.WriteMessage(websocket.PingMessage, nil)
 }
 
-func (c *websocketConnection) Close() error {
+func (c *websocketConnection) Close(context.Context) error {
 	if err := c.conn.Close(); err != nil {
 		return err
 	}
 
-	c.onClose(nil)
 	return nil
 }
 
@@ -126,23 +128,35 @@ func (c *websocketConnection) BytesReceived() uint64 {
 	return c.readCounter.Count()
 }
 
-func (c *websocketConnection) OnMessage(handler Handler) {
+func (c *websocketConnection) OnMessage(handler MessageHandler) {
 	c.onMessage[handler.Topic()] = handler
 }
 
-func (c *websocketConnection) OnClose(handler func(err error)) {
-	c.onClose = handler
+func (c *websocketConnection) OnClose(fun func(err error)) {
+	c.onClose = append(c.onClose, fun)
 }
 
-func (c *websocketConnection) OnError(handler func(err error)) {
-	c.onError = handler
+func (c *websocketConnection) callCloseCb(err error) {
+	for _, fun := range c.onClose {
+		fun(err)
+	}
+}
+
+func (c *websocketConnection) OnError(fun func(err error)) {
+	c.onError = append(c.onError, fun)
+}
+
+func (c *websocketConnection) callErrorCb(err error) {
+	for _, fun := range c.onError {
+		fun(err)
+	}
 }
 
 func (c *websocketConnection) readLoop() {
 	for {
 		messageType, reader, err := c.conn.NextReader()
 		if err != nil {
-			c.onClose(err)
+			c.callCloseCb(err)
 
 			// We MUST explicitly close connection
 			// Without this close, a connection file descriptor is sometimes leaked
@@ -166,19 +180,19 @@ func (c *websocketConnection) readMessage() {
 
 	topic, err := c.encoder.ReadTopic()
 	if err != nil {
-		c.onError(err)
+		c.callErrorCb(err)
 		return
 	}
 
 	handler := c.onMessage[topic]
 	if handler == nil {
-		c.onError(fmt.Errorf("no handler found for \"%s\" topic", topic))
+		c.callErrorCb(fmt.Errorf("no handler found for \"%s\" topic", topic))
 		return
 	}
 
 	data := handler.Model()
 	if err := c.encoder.ReadData(data); err != nil {
-		c.onError(err)
+		c.callErrorCb(err)
 		return
 	}
 
@@ -189,7 +203,7 @@ func (c *websocketConnection) readMessage() {
 		}
 
 		if err := c.Write(topic, replyData); err != nil {
-			c.onError(err)
+			c.callErrorCb(err)
 		}
 	}()
 }
@@ -215,11 +229,22 @@ func (c *websocketConnection) pingLoop() {
 	}
 }
 
+func (c *websocketConnection) handleListenerClose() {
+	if c.listener == nil {
+		return
+	}
+
+	<-c.listener.CloseChan()
+
+	// Any callbacks will
+	_ = c.conn.Close()
+}
+
 func DialWebsocket(addr string) (Connection, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(addr, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return newWebsocketConnection(conn), err
+	return newWebsocketConnection(conn, nil), err
 }

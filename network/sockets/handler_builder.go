@@ -16,7 +16,7 @@ func NewStopHandler(
 	topic string,
 	model interface{},
 	fun ...func(interface{}) interface{},
-) Handler {
+) MessageHandler {
 	return &stopHandler{
 		topic: topic,
 		model: model,
@@ -61,7 +61,7 @@ func NewChainHandler(
 	topic string,
 	model interface{},
 	fun ...func(interface{}) interface{},
-) Handler {
+) MessageHandler {
 	return &chainHandler{
 		topic: topic,
 		model: model,
