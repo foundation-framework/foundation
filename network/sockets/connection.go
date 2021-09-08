@@ -24,7 +24,7 @@ type Connection interface {
 	// Encoder used to encode message, use SetEncoder to change it
 	Write(topic string, data interface{}) error
 
-	// Close gracefully shutdowns the connection
+	// Close closes the connection
 	Close(ctx context.Context) error
 
 	// BytesSent returns the total number of bytes sent
@@ -43,7 +43,7 @@ type Connection interface {
 	// Multiple callbacks allowed
 	OnError(func(err error))
 
-	// OnClose sets callback for connection close
+	// OnClose sets callback for connection closure
 	// Multiple callbacks allowed
 	OnClose(func(err error))
 }

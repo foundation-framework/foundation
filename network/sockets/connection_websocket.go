@@ -45,8 +45,15 @@ func newWebsocketConnection(conn *websocket.Conn, listener *websocketListener) C
 		onError:   []func(err error){},
 	}
 
-	go result.readLoop()
-	go result.pingLoop()
+	go func() {
+		// Read loop reads and decodes any data in connection
+		result.readLoop()
+	}()
+
+	go func() {
+		// Ping loop keeps the connection alive
+		result.pingLoop()
+	}()
 
 	return result
 }
@@ -227,17 +234,6 @@ func (c *websocketConnection) pingLoop() {
 			return
 		}
 	}
-}
-
-func (c *websocketConnection) handleListenerClose() {
-	if c.listener == nil {
-		return
-	}
-
-	<-c.listener.CloseChan()
-
-	// Any callbacks will
-	_ = c.conn.Close()
 }
 
 func DialWebsocket(addr string) (Connection, error) {

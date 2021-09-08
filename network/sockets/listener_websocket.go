@@ -28,22 +28,21 @@ type websocketListener struct {
 	onConnection []func(Connection)
 	onError      []func(error)
 	onClose      []func(error)
-	closeChan    chan error
 }
 
+// NewWebsocketListener creates new Listener based on Websocket protocol
+//
+// Listen method accepts path to handle incoming connections
+// (path is used to create handler for restListener)
 func NewWebsocketListener(restListener rest.Listener, upgrader *Upgrader) Listener {
-	result := &websocketListener{
+	return &websocketListener{
 		restListener: restListener,
 		upgrader:     upgrader,
 
 		onConnection: []func(Connection){},
 		onError:      []func(error){},
 		onClose:      []func(error){},
-		closeChan:    make(chan error),
 	}
-
-	go result.handleRestListenerClose()
-	return result
 }
 
 func (l *websocketListener) Listen(path string) error {
@@ -67,8 +66,8 @@ func (l *websocketListener) Listen(path string) error {
 	return nil
 }
 
-func (l *websocketListener) Close(ctx context.Context) error {
-	return l.restListener.Close(ctx)
+func (l *websocketListener) Shutdown(ctx context.Context) error {
+	return l.restListener.Shutdown(ctx)
 }
 
 func (l *websocketListener) OnConnection(fun func(connection Connection)) {
@@ -99,15 +98,4 @@ func (l *websocketListener) callCloseCb(err error) {
 	for _, fun := range l.onClose {
 		fun(err)
 	}
-}
-
-func (l *websocketListener) CloseChan() <-chan error {
-	return l.closeChan
-}
-
-func (l *websocketListener) handleRestListenerClose() {
-	err := <-l.restListener.CloseChan()
-
-	l.closeChan <- err
-	l.callCloseCb(err)
 }
