@@ -1,7 +1,6 @@
 package sockets
 
 import (
-	"errors"
 	"fmt"
 	"io"
 
@@ -39,10 +38,11 @@ func (e *msgpackEncoder) ReadTopic() (string, error) {
 func (e *msgpackEncoder) ReadData(data interface{}) error {
 	decodable, ok := data.(msgp.Decodable)
 	if !ok {
-		return errors.New("data is not msgp.Decodable")
+		panic("data is not msgp.Decodable")
 	}
 
 	if err := decodable.DecodeMsg(e.reader); err != nil {
+		// We must return any Decode errors, to properly handle them
 		return err
 	}
 
@@ -50,13 +50,15 @@ func (e *msgpackEncoder) ReadData(data interface{}) error {
 }
 
 func (e *msgpackEncoder) WriteTopic(topic string) error {
+	// No encoding errors can be here
 	return e.writer.WriteString(topic)
 }
 
 func (e *msgpackEncoder) WriteData(data interface{}) error {
+	// Any encoding errors must panic to prevent wrong usage
 	encodable, ok := data.(msgp.Encodable)
 	if !ok {
-		return errors.New("data is not msgp.Encodable")
+		panic("data is not msgp.Encodable")
 	}
 
 	err := encodable.EncodeMsg(e.writer)
