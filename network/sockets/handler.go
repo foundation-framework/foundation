@@ -1,5 +1,7 @@
 package sockets
 
+import "context"
+
 // MessageHandler describes handler for incoming message on the connection
 type MessageHandler interface {
 
@@ -15,5 +17,5 @@ type MessageHandler interface {
 
 	// Serve used to serve message
 	// Any data returned by this method will be sent back using the same topic
-	Serve(data interface{}) interface{}
+	Serve(ctx context.Context, data interface{}) interface{}
 }

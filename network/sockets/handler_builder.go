@@ -1,13 +1,15 @@
 package sockets
 
 import (
+	"context"
+
 	"github.com/intale-llc/foundation/internal/utils"
 )
 
 type stopHandler struct {
 	topic string
 	model interface{}
-	fun   []func(interface{}) interface{}
+	fun   []func(context.Context, interface{}) interface{}
 }
 
 // NewStopHandler will create a MessageHandler
@@ -16,7 +18,7 @@ type stopHandler struct {
 func NewStopHandler(
 	topic string,
 	model interface{},
-	fun ...func(interface{}) interface{},
+	fun ...func(context.Context, interface{}) interface{},
 ) MessageHandler {
 	return &stopHandler{
 		topic: topic,
@@ -33,9 +35,9 @@ func (s *stopHandler) Model() interface{} {
 	return utils.CopyInterfaceValue(s.model)
 }
 
-func (s *stopHandler) Serve(data interface{}) interface{} {
+func (s *stopHandler) Serve(ctx context.Context, data interface{}) interface{} {
 	for _, fun := range s.fun {
-		result := fun(data)
+		result := fun(ctx, data)
 
 		if result != nil {
 			return result
@@ -48,7 +50,7 @@ func (s *stopHandler) Serve(data interface{}) interface{} {
 type stopLastHandler struct {
 	topic string
 	model interface{}
-	fun   []func(interface{}) interface{}
+	fun   []func(context.Context, interface{}) interface{}
 }
 
 // NewStopLastHandler will create a MessageHandler
@@ -58,7 +60,7 @@ type stopLastHandler struct {
 func NewStopLastHandler(
 	topic string,
 	model interface{},
-	fun ...func(interface{}) interface{},
+	fun ...func(context.Context, interface{}) interface{},
 ) MessageHandler {
 	return &stopLastHandler{
 		topic: topic,
@@ -75,9 +77,9 @@ func (s *stopLastHandler) Model() interface{} {
 	return utils.CopyInterfaceValue(s.model)
 }
 
-func (s *stopLastHandler) Serve(data interface{}) interface{} {
+func (s *stopLastHandler) Serve(ctx context.Context, data interface{}) interface{} {
 	for i, fun := range s.fun {
-		result := fun(data)
+		result := fun(ctx, data)
 
 		if result == nil {
 			continue
@@ -85,7 +87,7 @@ func (s *stopLastHandler) Serve(data interface{}) interface{} {
 
 		lastIndex := len(s.fun) - 1
 		if i != lastIndex {
-			return s.fun[lastIndex](result)
+			return s.fun[lastIndex](ctx, result)
 		}
 
 		return result

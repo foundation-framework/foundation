@@ -3,7 +3,9 @@ package sockets
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -30,6 +32,7 @@ type websocketConnection struct {
 	onMessage map[string]MessageHandler
 	onClose   []func(err error)
 	onError   []func(err error)
+	onFatal   func(topic string, data interface{}, msg interface{})
 }
 
 func newWebsocketConnection(conn *websocket.Conn, listener *websocketListener) Connection {
@@ -43,6 +46,7 @@ func newWebsocketConnection(conn *websocket.Conn, listener *websocketListener) C
 		onMessage: map[string]MessageHandler{},
 		onClose:   []func(err error){},
 		onError:   []func(err error){},
+		// onFatal must be nil to print default messages to terminal
 	}
 
 	go func() {
@@ -159,6 +163,10 @@ func (c *websocketConnection) callErrorCb(err error) {
 	}
 }
 
+func (c *websocketConnection) OnFatal(fun func(topic string, data interface{}, msg interface{})) {
+	c.onFatal = fun
+}
+
 func (c *websocketConnection) readLoop() {
 	for {
 		messageType, reader, err := c.conn.NextReader()
@@ -204,7 +212,9 @@ func (c *websocketConnection) readMessage() {
 	}
 
 	go func() {
-		replyData := handler.Serve(data)
+		defer c.panicCatcher(topic, data)
+		replyData := handler.Serve(context.TODO(), data)
+
 		if replyData == nil {
 			return
 		}
@@ -213,6 +223,20 @@ func (c *websocketConnection) readMessage() {
 			c.callErrorCb(err)
 		}
 	}()
+}
+
+func (c *websocketConnection) panicCatcher(topic string, data interface{}) {
+	msg := recover()
+	if msg == nil {
+		return
+	}
+
+	if c.onFatal != nil {
+		c.onFatal(topic, data, msg)
+		return
+	}
+
+	log.Printf("sockets: panic on '%s' handler: %s\n%s", topic, msg, string(debug.Stack()))
 }
 
 func (c *websocketConnection) pingLoop() {

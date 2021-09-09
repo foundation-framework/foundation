@@ -43,6 +43,10 @@ type Connection interface {
 	// Multiple callbacks allowed
 	OnError(func(err error))
 
+	// OnFatal sets callback for critical handler errors (usually panics)
+	// Only one callback allowed, next calls will replace callback
+	OnFatal(func(topic string, data interface{}, msg interface{}))
+
 	// OnClose sets callback for connection closure
 	// Multiple callbacks allowed
 	OnClose(func(err error))
