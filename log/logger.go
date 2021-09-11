@@ -1,16 +1,35 @@
 package log
 
-import "context"
+import (
+	"context"
+	"fmt"
+
+	"go.uber.org/zap"
+)
 
 var (
 	ContextKey = "logger"
 )
 
 type Logger interface {
-	Debugf(template string, args interface{})
-	Infof(template string, args interface{})
-	Warnf(template string, args interface{})
-	Errorf(template string, args interface{})
+	Named(name string) Logger
+	With(keysAndValues ...interface{}) Logger
+
+	Debug(msg string, keysAndValues ...interface{})
+	Info(msg string, keysAndValues ...interface{})
+	Warn(msg string, keysAndValues ...interface{})
+	Error(msg string, keysAndValues ...interface{})
+	DPanic(msg string, keysAndValues ...interface{})
+	Panic(msg string, keysAndValues ...interface{})
+	Fatal(msg string, keysAndValues ...interface{})
+}
+
+func init() {
+	fmt.Println("Initializing logger package")
+
+	if err := zap.RegisterSink(udpScheme, newUdpSink); err != nil {
+		panic(fmt.Errorf("unexpected error: %s", err.Error()))
+	}
 }
 
 func PackContext(ctx context.Context, logger Logger) context.Context {
