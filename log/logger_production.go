@@ -5,27 +5,26 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func NewDevelopmentLogger(output ...string) (Logger, error) {
+func NewProductionLogger(output ...string) (Logger, error) {
 	if len(output) == 0 {
 		output = []string{"stdout"}
 	}
 
 	config := zap.Config{
-		Level:       zap.NewAtomicLevelAt(zapcore.DebugLevel),
-		Development: true,
-		Encoding:    "console",
+		Level:    zap.NewAtomicLevelAt(zapcore.InfoLevel),
+		Encoding: "json",
 		EncoderConfig: zapcore.EncoderConfig{
-			TimeKey:        "T",
-			LevelKey:       "L",
-			NameKey:        "N",
-			CallerKey:      "C",
+			TimeKey:        "timestamp",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
 			FunctionKey:    zapcore.OmitKey,
-			MessageKey:     "M",
-			StacktraceKey:  "S",
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
 			LineEnding:     zapcore.DefaultLineEnding,
-			EncodeLevel:    zapcore.CapitalLevelEncoder,
+			EncodeLevel:    zapcore.LowercaseLevelEncoder,
 			EncodeTime:     zapcore.ISO8601TimeEncoder,
-			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeDuration: zapcore.SecondsDurationEncoder,
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 		},
 		OutputPaths:      output,

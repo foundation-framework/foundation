@@ -4,3 +4,8 @@
 # For fast testing
 /test
 main.go
+
+# Logs and configs
+*.yaml
+*.yml
+*.log
