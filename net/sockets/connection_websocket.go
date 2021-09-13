@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -236,7 +235,7 @@ func (c *websocketConnection) panicCatcher(topic string, data interface{}) {
 		return
 	}
 
-	log.Printf("sockets: panic on '%s' handler: %s\n%s", topic, msg, string(debug.Stack()))
+	log.Printf("sockets: panic on '%s' handler: %s\n%s", topic, msg, utils.StackString())
 }
 
 func (c *websocketConnection) pingLoop() {

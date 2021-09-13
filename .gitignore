@@ -2,6 +2,8 @@
 .DS_Store
 
 # For fast testing
+localhost.crt
+localhost.key
 /test
 main.go
 

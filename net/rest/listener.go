@@ -22,12 +22,4 @@ type Listener interface {
 	//
 	// Any changes made after server has started listening have no effect
 	Router() *mux.Router
-
-	// OnError sets callback for non-critical server errors
-	// Multiple callbacks allowed
-	OnError(func(error))
-
-	// OnClose sets callback for server closure
-	// Multiple callbacks allowed
-	OnClose(func(error))
 }

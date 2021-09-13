@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/intale-llc/foundation/network/rest"
+	"github.com/intale-llc/foundation/net/rest"
 	"github.com/intale-llc/foundation/units"
 )
 
