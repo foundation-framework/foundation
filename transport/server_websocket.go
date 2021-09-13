@@ -1,4 +1,4 @@
-package sockets
+package transport
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/intale-llc/foundation/net/rest"
 	"github.com/intale-llc/foundation/units"
 )
 
@@ -21,8 +20,8 @@ var DefaultUpgrader = &Upgrader{
 	// Other settings are nil & false
 }
 
-type websocketListener struct {
-	restListener rest.Listener
+type websocketServer struct {
+	restListener RESTServer
 	upgrader     *Upgrader
 
 	onConnection []func(Connection)
@@ -30,12 +29,12 @@ type websocketListener struct {
 	onClose      []func(error)
 }
 
-// NewWebsocketListener creates new Listener based on Websocket protocol
+// NewWebsocketServer creates new Server based on Websocket protocol
 //
 // Listen method accepts path to handle incoming connections
 // (path is used to create handler for restListener)
-func NewWebsocketListener(restListener rest.Listener, upgrader *Upgrader) Listener {
-	return &websocketListener{
+func NewWebsocketServer(restListener RESTServer, upgrader *Upgrader) Server {
+	return &websocketServer{
 		restListener: restListener,
 		upgrader:     upgrader,
 
@@ -45,7 +44,7 @@ func NewWebsocketListener(restListener rest.Listener, upgrader *Upgrader) Listen
 	}
 }
 
-func (l *websocketListener) Listen(path string) error {
+func (l *websocketServer) Listen(path string) error {
 	var upgrader = (*websocket.Upgrader)(l.upgrader)
 
 	// Use DefaultUpgrader if nil
@@ -66,35 +65,35 @@ func (l *websocketListener) Listen(path string) error {
 	return nil
 }
 
-func (l *websocketListener) Shutdown(ctx context.Context) error {
+func (l *websocketServer) Shutdown(ctx context.Context) error {
 	return l.restListener.Shutdown(ctx)
 }
 
-func (l *websocketListener) OnConnection(fun func(connection Connection)) {
+func (l *websocketServer) OnConnection(fun func(connection Connection)) {
 	l.onConnection = append(l.onConnection, fun)
 }
 
-func (l *websocketListener) callConnectionCb(connection Connection) {
+func (l *websocketServer) callConnectionCb(connection Connection) {
 	for _, fun := range l.onConnection {
 		fun(connection)
 	}
 }
 
-func (l *websocketListener) OnError(fun func(err error)) {
+func (l *websocketServer) OnError(fun func(err error)) {
 	l.onError = append(l.onError, fun)
 }
 
-func (l *websocketListener) callErrorCb(err error) {
+func (l *websocketServer) callErrorCb(err error) {
 	for _, fun := range l.onError {
 		fun(err)
 	}
 }
 
-func (l *websocketListener) OnClose(fun func(err error)) {
+func (l *websocketServer) OnClose(fun func(err error)) {
 	l.onClose = append(l.onClose, fun)
 }
 
-func (l *websocketListener) callCloseCb(err error) {
+func (l *websocketServer) callCloseCb(err error) {
 	for _, fun := range l.onClose {
 		fun(err)
 	}

@@ -1,4 +1,4 @@
-package sockets
+package transport
 
 import (
 	"context"
@@ -19,7 +19,7 @@ var (
 
 type websocketConnection struct {
 	conn     *websocket.Conn
-	listener *websocketListener
+	listener *websocketServer
 	encoder  Encoder
 
 	pingTicker  *time.Ticker
@@ -34,7 +34,7 @@ type websocketConnection struct {
 	onFatal   func(topic string, data interface{}, msg interface{})
 }
 
-func newWebsocketConnection(conn *websocket.Conn, listener *websocketListener) Connection {
+func newWebsocketConnection(conn *websocket.Conn, listener *websocketServer) Connection {
 	result := &websocketConnection{
 		conn:     conn,
 		listener: listener,

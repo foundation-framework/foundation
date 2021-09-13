@@ -1,4 +1,4 @@
-package rest
+package transport
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type http2Listener struct {
+type http2Server struct {
 	tlsConfig         *tls.Config
 	certFile, keyFile string
 
@@ -16,29 +16,29 @@ type http2Listener struct {
 	router *mux.Router
 }
 
-// NewHTTP2Listener creates new Listener based on HTTP/2 and
+// NewHTTP2Server creates new RESTServer based on HTTP/2 and
 // (for backward compatibility) HTTP/1.x protocol. HTTP/2 will
 // only work with secured connections, while HTTP/1 will work
 // with both secured and unsecured connections.
 //
 // Listen method accepts address to bind to
-func NewHTTP2Listener(tlsConfig *tls.Config) Listener {
-	return &http2Listener{
+func NewHTTP2Server(tlsConfig *tls.Config) RESTServer {
+	return &http2Server{
 		tlsConfig: tlsConfig,
 		router:    mux.NewRouter(),
 	}
 }
 
-// NewHTTP2ListenerHelper is tls helper for NewHTTP2Listener function
-func NewHTTP2ListenerHelper(certFile, keyFile string) Listener {
-	return &http2Listener{
+// NewHTTP2ServerHelper is tls helper for NewHTTP2Server function
+func NewHTTP2ServerHelper(certFile, keyFile string) RESTServer {
+	return &http2Server{
 		certFile: certFile,
 		keyFile:  keyFile,
 		router:   mux.NewRouter(),
 	}
 }
 
-func (l *http2Listener) Listen(addr string) error {
+func (l *http2Server) Listen(addr string) error {
 	l.server = &http.Server{
 		Addr:      addr,
 		Handler:   l.router,
@@ -52,10 +52,10 @@ func (l *http2Listener) Listen(addr string) error {
 	}
 }
 
-func (l *http2Listener) Shutdown(ctx context.Context) error {
+func (l *http2Server) Shutdown(ctx context.Context) error {
 	return l.server.Shutdown(ctx)
 }
 
-func (l *http2Listener) Router() *mux.Router {
+func (l *http2Server) Router() *mux.Router {
 	return l.router
 }

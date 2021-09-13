@@ -1,9 +1,9 @@
-package sockets
+package transport
 
 import "context"
 
-// Listener describes a connection listener for real-time communications
-type Listener interface {
+// Server describes server for real-time communications
+type Server interface {
 
 	// Listen starts listening for connections on provided address or adds handler
 	// for a specified path (endpoint parameter implementation defined)
