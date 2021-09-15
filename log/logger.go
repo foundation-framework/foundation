@@ -2,57 +2,76 @@ package log
 
 import (
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
-type Logger interface {
-	Named(name string) Logger
-	With(keysAndValues ...interface{}) Logger
+type Logger = zap.Logger
 
-	Debug(msg string, keysAndValues ...interface{})
-	Info(msg string, keysAndValues ...interface{})
-	Warn(msg string, keysAndValues ...interface{})
-	Error(msg string, keysAndValues ...interface{})
-	DPanic(msg string, keysAndValues ...interface{})
-	Panic(msg string, keysAndValues ...interface{})
-	Fatal(msg string, keysAndValues ...interface{})
+func NewProductionLogger(output ...string) (*Logger, error) {
+	if len(output) == 0 {
+		output = []string{"stdout"}
+	}
+
+	config := zap.Config{
+		Level:    zap.NewAtomicLevelAt(zapcore.InfoLevel),
+		Encoding: "json",
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "timestamp",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			FunctionKey:    zapcore.OmitKey,
+			MessageKey:     "message",
+			StacktraceKey:  "stack",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.LowercaseLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.SecondsDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      output,
+		ErrorOutputPaths: output,
+	}
+
+	logger, err := config.Build(zap.AddCallerSkip(1))
+	if err != nil {
+		return nil, err
+	}
+
+	return logger, nil
 }
 
-type logger struct {
-	logger *zap.SugaredLogger
-}
+func NewDevelopmentLogger(output ...string) (*Logger, error) {
+	if len(output) == 0 {
+		output = []string{"stdout"}
+	}
 
-func (d *logger) Named(name string) Logger {
-	return &logger{logger: d.logger.Named(name)}
-}
+	config := zap.Config{
+		Level:       zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		Development: true,
+		Encoding:    "console",
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "T",
+			LevelKey:       "L",
+			NameKey:        "N",
+			CallerKey:      "C",
+			FunctionKey:    zapcore.OmitKey,
+			MessageKey:     "M",
+			StacktraceKey:  "S",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.CapitalLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      output,
+		ErrorOutputPaths: output,
+	}
 
-func (d *logger) With(keysAndValues ...interface{}) Logger {
-	return &logger{logger: d.logger.With(keysAndValues)}
-}
+	logger, err := config.Build(zap.AddCallerSkip(1))
+	if err != nil {
+		return nil, err
+	}
 
-func (d *logger) Debug(msg string, keysAndValues ...interface{}) {
-	d.logger.Debugw(msg, keysAndValues...)
-}
-
-func (d *logger) Info(msg string, keysAndValues ...interface{}) {
-	d.logger.Infow(msg, keysAndValues...)
-}
-
-func (d *logger) Warn(msg string, keysAndValues ...interface{}) {
-	d.logger.Warnw(msg, keysAndValues...)
-}
-
-func (d *logger) Error(msg string, keysAndValues ...interface{}) {
-	d.logger.Errorw(msg, keysAndValues...)
-}
-
-func (d *logger) DPanic(msg string, keysAndValues ...interface{}) {
-	d.logger.DPanicw(msg, keysAndValues...)
-}
-
-func (d *logger) Panic(msg string, keysAndValues ...interface{}) {
-	d.logger.Panicw(msg, keysAndValues...)
-}
-
-func (d *logger) Fatal(msg string, keysAndValues ...interface{}) {
-	d.logger.Fatalw(msg, keysAndValues...)
+	return logger, nil
 }

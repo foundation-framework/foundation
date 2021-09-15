@@ -1,4 +1,4 @@
-package transport
+package sockets
 
 import (
 	"context"
@@ -12,14 +12,14 @@ type stopHandler struct {
 	fun   []func(context.Context, interface{}) interface{}
 }
 
-// NewStopHandler will create a MessageHandler
+// NewStopHandler will create a Handler
 //
 // Any chained function return non-nil result will stop subsequent calls
 func NewStopHandler(
 	topic string,
 	model interface{},
 	fun ...func(context.Context, interface{}) interface{},
-) MessageHandler {
+) Handler {
 	return &stopHandler{
 		topic: topic,
 		model: model,
@@ -53,7 +53,7 @@ type stopLastHandler struct {
 	fun   []func(context.Context, interface{}) interface{}
 }
 
-// NewStopLastHandler will create a MessageHandler
+// NewStopLastHandler will create a Handler
 //
 // Any chained function return non-nil result will stop subsequent
 // calls and call the last function with that result
@@ -61,7 +61,7 @@ func NewStopLastHandler(
 	topic string,
 	model interface{},
 	fun ...func(context.Context, interface{}) interface{},
-) MessageHandler {
+) Handler {
 	return &stopLastHandler{
 		topic: topic,
 		model: model,

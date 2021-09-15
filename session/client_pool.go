@@ -1,17 +1,13 @@
 package session
 
 import (
-	"sync"
-
 	"github.com/Workiva/go-datastructures/set"
 	"github.com/intale-llc/foundation/rand"
-	"github.com/intale-llc/foundation/transport"
+	"github.com/intale-llc/foundation/transport/sockets"
 )
 
 type ClientPool struct {
-	clients sync.Map
-	rooms   map[string]*set.Set
-
+	rooms          map[string]*set.Set
 	accessLevelFun func(client *Client) AccessLevel
 }
 
@@ -26,15 +22,12 @@ func NewClientPool(accessLevelFun func(client *Client) AccessLevel) *ClientPool 
 	}
 }
 
-func (p *ClientPool) NewClient(connection transport.Connection) *Client {
-	client := &Client{
-		Connection: connection,
-		pool:       p,
-		id:         rand.UUIDv4(),
+func (p *ClientPool) NewClient(connection sockets.Conn) *Client {
+	return &Client{
+		Conn: connection,
+		pool: p,
+		id:   rand.UUIDv4(),
 	}
-
-	p.clients.Store(client.ID(), client)
-	return client
 }
 
 func (p *ClientPool) join(client *Client, room string) {

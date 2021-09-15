@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/Workiva/go-datastructures/set"
-	"github.com/intale-llc/foundation/transport"
+	"github.com/intale-llc/foundation/transport/sockets"
 )
 
 type Data interface {
@@ -12,7 +12,7 @@ type Data interface {
 }
 
 type Client struct {
-	transport.Connection
+	sockets.Conn
 
 	pool  *ClientPool
 	rooms *set.Set

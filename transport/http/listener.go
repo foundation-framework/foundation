@@ -1,4 +1,4 @@
-package transport
+package http
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// RESTServer describes basic REST server
-type RESTServer interface {
+// Listener describes basic HTTP-REST server
+type Listener interface {
 
 	// Listen starts listening for requests on a provided address or path
 	// (endpoint parameter implementation defined)

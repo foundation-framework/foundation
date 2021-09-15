@@ -1,9 +1,9 @@
-package transport
+package http
 
 import (
 	"context"
 	"crypto/tls"
-	"net/http"
+	stdhttp "net/http"
 
 	"github.com/gorilla/mux"
 )
@@ -12,23 +12,23 @@ type http1Server struct {
 	tlsConfig         *tls.Config
 	certFile, keyFile string
 
-	server *http.Server
+	server *stdhttp.Server
 	router *mux.Router
 }
 
-// NewHTTP1Server creates new RESTServer based only HTTP/1.x protocol.
+// NewHTTP1Listen creates new Listener based only HTTP/1.x protocol.
 // Works with both secured and unsecured connections.
 //
 // Listen method accepts address to bind to
-func NewHTTP1Server(tlsConfig *tls.Config) RESTServer {
+func NewHTTP1Listen(tlsConfig *tls.Config) Listener {
 	return &http1Server{
 		tlsConfig: tlsConfig,
 		router:    mux.NewRouter(),
 	}
 }
 
-// NewHTTP1ServerHelper is tls helper for NewHTTP1Server function
-func NewHTTP1ServerHelper(certFile, keyFile string) RESTServer {
+// NewHTTP1ListenerHelper is tls helper for NewHTTP1Listen function
+func NewHTTP1ListenerHelper(certFile, keyFile string) Listener {
 	return &http1Server{
 		certFile: certFile,
 		keyFile:  keyFile,
@@ -36,12 +36,12 @@ func NewHTTP1ServerHelper(certFile, keyFile string) RESTServer {
 	}
 }
 func (l *http1Server) Listen(addr string) error {
-	l.server = &http.Server{
+	l.server = &stdhttp.Server{
 		Addr:    addr,
 		Handler: l.router,
 
 		// Disabling http2 support
-		TLSNextProto: map[string]func(*http.Server, *tls.Conn, http.Handler){},
+		TLSNextProto: map[string]func(*stdhttp.Server, *tls.Conn, stdhttp.Handler){},
 	}
 
 	if l.tlsConfig == nil && (l.certFile == "" || l.keyFile == "") {

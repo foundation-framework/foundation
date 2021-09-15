@@ -1,9 +1,9 @@
-package transport
+package sockets
 
 import "context"
 
-// MessageHandler describes handler for incoming message on the connection
-type MessageHandler interface {
+// Handler describes handler for incoming message on the connection
+type Handler interface {
 
 	// Topic returns listening topic - base routing point
 	//

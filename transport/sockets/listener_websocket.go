@@ -1,11 +1,12 @@
-package transport
+package sockets
 
 import (
 	"context"
-	"net/http"
+	stdhttp "net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/intale-llc/foundation/transport/http"
 	"github.com/intale-llc/foundation/units"
 )
 
@@ -15,36 +16,36 @@ var DefaultUpgrader = &Upgrader{
 	HandshakeTimeout: time.Second * 5,
 	ReadBufferSize:   units.Kilobyte * 65,
 	WriteBufferSize:  units.Kilobyte * 65,
-	CheckOrigin:      func(r *http.Request) bool { return true },
+	CheckOrigin:      func(r *stdhttp.Request) bool { return true },
 
 	// Other settings are nil & false
 }
 
-type websocketServer struct {
-	restListener RESTServer
+type websocketListener struct {
+	restListener http.Listener
 	upgrader     *Upgrader
 
-	onConnection []func(Connection)
+	onConnection []func(Conn)
 	onError      []func(error)
 	onClose      []func(error)
 }
 
-// NewWebsocketServer creates new Server based on Websocket protocol
+// NewWebsocketListener creates new Listener based on Websocket protocol
 //
 // Listen method accepts path to handle incoming connections
 // (path is used to create handler for restListener)
-func NewWebsocketServer(restListener RESTServer, upgrader *Upgrader) Server {
-	return &websocketServer{
-		restListener: restListener,
+func NewWebsocketListener(httpListener http.Listener, upgrader *Upgrader) Listener {
+	return &websocketListener{
+		restListener: httpListener,
 		upgrader:     upgrader,
 
-		onConnection: []func(Connection){},
+		onConnection: []func(Conn){},
 		onError:      []func(error){},
 		onClose:      []func(error){},
 	}
 }
 
-func (l *websocketServer) Listen(path string) error {
+func (l *websocketListener) Listen(path string) error {
 	var upgrader = (*websocket.Upgrader)(l.upgrader)
 
 	// Use DefaultUpgrader if nil
@@ -52,48 +53,48 @@ func (l *websocketServer) Listen(path string) error {
 		upgrader = (*websocket.Upgrader)(DefaultUpgrader)
 	}
 
-	l.restListener.Router().HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+	l.restListener.Router().HandleFunc(path, func(w stdhttp.ResponseWriter, r *stdhttp.Request) {
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			l.callErrorCb(err)
 			return
 		}
 
-		l.callConnectionCb(newWebsocketConnection(conn, l))
+		l.callConnectionCb(newWebsocketConn(conn, l))
 	})
 
 	return nil
 }
 
-func (l *websocketServer) Shutdown(ctx context.Context) error {
+func (l *websocketListener) Shutdown(ctx context.Context) error {
 	return l.restListener.Shutdown(ctx)
 }
 
-func (l *websocketServer) OnConnection(fun func(connection Connection)) {
+func (l *websocketListener) OnConnection(fun func(connection Conn)) {
 	l.onConnection = append(l.onConnection, fun)
 }
 
-func (l *websocketServer) callConnectionCb(connection Connection) {
+func (l *websocketListener) callConnectionCb(connection Conn) {
 	for _, fun := range l.onConnection {
 		fun(connection)
 	}
 }
 
-func (l *websocketServer) OnError(fun func(err error)) {
+func (l *websocketListener) OnError(fun func(err error)) {
 	l.onError = append(l.onError, fun)
 }
 
-func (l *websocketServer) callErrorCb(err error) {
+func (l *websocketListener) callErrorCb(err error) {
 	for _, fun := range l.onError {
 		fun(err)
 	}
 }
 
-func (l *websocketServer) OnClose(fun func(err error)) {
+func (l *websocketListener) OnClose(fun func(err error)) {
 	l.onClose = append(l.onClose, fun)
 }
 
-func (l *websocketServer) callCloseCb(err error) {
+func (l *websocketListener) callCloseCb(err error) {
 	for _, fun := range l.onClose {
 		fun(err)
 	}

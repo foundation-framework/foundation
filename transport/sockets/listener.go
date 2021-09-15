@@ -1,9 +1,11 @@
-package transport
+package sockets
 
-import "context"
+import (
+	"context"
+)
 
-// Server describes server for real-time communications
-type Server interface {
+// Listener describes server for real-time communications
+type Listener interface {
 
 	// Listen starts listening for connections on provided address or adds handler
 	// for a specified path (endpoint parameter implementation defined)
@@ -15,7 +17,7 @@ type Server interface {
 
 	// OnConnection sets callback for an incoming connection
 	// Multiple callbacks allowed
-	OnConnection(func(Connection))
+	OnConnection(func(Conn))
 
 	// OnError sets a callback for non-critical connection errors
 	// Multiple callbacks allowed

@@ -1,12 +1,12 @@
-package transport
+package sockets
 
 import (
 	"context"
 	"net"
 )
 
-// Connection describes a real-time connection
-type Connection interface {
+// Conn describes a real-time connection
+type Conn interface {
 
 	// SetEncoder sets encoder for a connection (MessagePack Encoder used by default)
 	//
@@ -37,7 +37,7 @@ type Connection interface {
 	// Encoder used to decode message, use SetEncoder to change it
 	//
 	// Multiple handlers allowed
-	OnMessage(handler MessageHandler)
+	OnMessage(handler Handler)
 
 	// OnError sets callback for non-critical connection errors
 	// Multiple callbacks allowed
