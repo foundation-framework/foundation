@@ -3,6 +3,7 @@ package sockets
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"sync"
 	"time"
@@ -16,7 +17,7 @@ var (
 	pingCheckTimeout = time.Second * 4
 )
 
-type websocketConnection struct {
+type websocketConn struct {
 	conn     *websocket.Conn
 	listener *websocketListener
 	encoder  Encoder
@@ -27,22 +28,24 @@ type websocketConnection struct {
 	readCounter  utils.ReadCounter
 	writeCounter utils.WriteCounter
 
-	onMessage map[string]MessageHandler
+	onMessage map[string]Handler
 	onClose   []func(err error)
 	onError   []func(err error)
+	onFatal   func(topic string, data interface{}, msg interface{})
 }
 
-func newWebsocketConnection(conn *websocket.Conn, listener *websocketListener) Connection {
-	result := &websocketConnection{
+func newWebsocketConn(conn *websocket.Conn, listener *websocketListener) Conn {
+	result := &websocketConn{
 		conn:     conn,
 		listener: listener,
 		encoder:  NewMsgpackEncoder(),
 
 		pingTicker: time.NewTicker(pingTimeout),
 
-		onMessage: map[string]MessageHandler{},
+		onMessage: map[string]Handler{},
 		onClose:   []func(err error){},
 		onError:   []func(err error){},
+		// onFatal must be nil to print default messages to terminal
 	}
 
 	go func() {
@@ -58,19 +61,19 @@ func newWebsocketConnection(conn *websocket.Conn, listener *websocketListener) C
 	return result
 }
 
-func (c *websocketConnection) SetEncoder(encoder Encoder) {
+func (c *websocketConn) SetEncoder(encoder Encoder) {
 	c.encoder = encoder
 }
 
-func (c *websocketConnection) LocalAddr() net.Addr {
+func (c *websocketConn) LocalAddr() net.Addr {
 	return c.conn.LocalAddr()
 }
 
-func (c *websocketConnection) RemoteAddr() net.Addr {
+func (c *websocketConn) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
-func (c *websocketConnection) Write(topic string, data interface{}) error {
+func (c *websocketConn) Write(topic string, data interface{}) error {
 	c.writerMutex.Lock()
 	defer c.writerMutex.Unlock()
 
@@ -94,7 +97,7 @@ func (c *websocketConnection) Write(topic string, data interface{}) error {
 	return nil
 }
 
-func (c *websocketConnection) writeMessage(topic string, data interface{}) error {
+func (c *websocketConn) writeMessage(topic string, data interface{}) error {
 	c.encoder.ResetWriter(&c.writeCounter)
 
 	if err := c.encoder.WriteTopic(topic); err != nil {
@@ -112,14 +115,14 @@ func (c *websocketConnection) writeMessage(topic string, data interface{}) error
 	return nil
 }
 
-func (c *websocketConnection) writePing() error {
+func (c *websocketConn) writePing() error {
 	c.writerMutex.Lock()
 	defer c.writerMutex.Unlock()
 
 	return c.conn.WriteMessage(websocket.PingMessage, nil)
 }
 
-func (c *websocketConnection) Close(context.Context) error {
+func (c *websocketConn) Close(context.Context) error {
 	if err := c.conn.Close(); err != nil {
 		return err
 	}
@@ -127,39 +130,43 @@ func (c *websocketConnection) Close(context.Context) error {
 	return nil
 }
 
-func (c *websocketConnection) BytesSent() uint64 {
+func (c *websocketConn) BytesSent() uint64 {
 	return c.writeCounter.Count()
 }
 
-func (c *websocketConnection) BytesReceived() uint64 {
+func (c *websocketConn) BytesReceived() uint64 {
 	return c.readCounter.Count()
 }
 
-func (c *websocketConnection) OnMessage(handler MessageHandler) {
+func (c *websocketConn) OnMessage(handler Handler) {
 	c.onMessage[handler.Topic()] = handler
 }
 
-func (c *websocketConnection) OnClose(fun func(err error)) {
+func (c *websocketConn) OnClose(fun func(err error)) {
 	c.onClose = append(c.onClose, fun)
 }
 
-func (c *websocketConnection) callCloseCb(err error) {
+func (c *websocketConn) callCloseCb(err error) {
 	for _, fun := range c.onClose {
 		fun(err)
 	}
 }
 
-func (c *websocketConnection) OnError(fun func(err error)) {
+func (c *websocketConn) OnError(fun func(err error)) {
 	c.onError = append(c.onError, fun)
 }
 
-func (c *websocketConnection) callErrorCb(err error) {
+func (c *websocketConn) callErrorCb(err error) {
 	for _, fun := range c.onError {
 		fun(err)
 	}
 }
 
-func (c *websocketConnection) readLoop() {
+func (c *websocketConn) OnFatal(fun func(topic string, data interface{}, msg interface{})) {
+	c.onFatal = fun
+}
+
+func (c *websocketConn) readLoop() {
 	for {
 		messageType, reader, err := c.conn.NextReader()
 		if err != nil {
@@ -182,7 +189,7 @@ func (c *websocketConnection) readLoop() {
 	}
 }
 
-func (c *websocketConnection) readMessage() {
+func (c *websocketConn) readMessage() {
 	c.encoder.ResetReader(&c.readCounter)
 
 	topic, err := c.encoder.ReadTopic()
@@ -204,7 +211,9 @@ func (c *websocketConnection) readMessage() {
 	}
 
 	go func() {
-		replyData := handler.Serve(data)
+		defer c.panicCatcher(topic, data)
+		replyData := handler.Serve(context.TODO(), data)
+
 		if replyData == nil {
 			return
 		}
@@ -215,7 +224,21 @@ func (c *websocketConnection) readMessage() {
 	}()
 }
 
-func (c *websocketConnection) pingLoop() {
+func (c *websocketConn) panicCatcher(topic string, data interface{}) {
+	msg := recover()
+	if msg == nil {
+		return
+	}
+
+	if c.onFatal != nil {
+		c.onFatal(topic, data, msg)
+		return
+	}
+
+	log.Printf("sockets: panic on '%s' handler: %s\n%s", topic, msg, utils.StackString())
+}
+
+func (c *websocketConn) pingLoop() {
 	c.conn.SetPongHandler(func(string) error {
 		return c.conn.SetReadDeadline(time.Time{})
 	})
@@ -236,11 +259,11 @@ func (c *websocketConnection) pingLoop() {
 	}
 }
 
-func DialWebsocket(addr string) (Connection, error) {
+func DialWebsocket(addr string) (Conn, error) {
 	conn, _, err := websocket.DefaultDialer.Dial(addr, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return newWebsocketConnection(conn, nil), err
+	return newWebsocketConn(conn, nil), err
 }

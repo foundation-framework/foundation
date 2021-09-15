@@ -1,8 +1,10 @@
 package sockets
 
-import "context"
+import (
+	"context"
+)
 
-// Listener describes a connection listener for real-time communications
+// Listener describes server for real-time communications
 type Listener interface {
 
 	// Listen starts listening for connections on provided address or adds handler
@@ -15,7 +17,7 @@ type Listener interface {
 
 	// OnConnection sets callback for an incoming connection
 	// Multiple callbacks allowed
-	OnConnection(func(Connection))
+	OnConnection(func(Conn))
 
 	// OnError sets a callback for non-critical connection errors
 	// Multiple callbacks allowed
