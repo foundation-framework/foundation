@@ -3,15 +3,15 @@ package session
 import "context"
 
 var (
-	ContextKey = "client"
+	ContextClientKey = "client"
 )
 
-func PackContext(ctx context.Context, client *Client) context.Context {
-	return context.WithValue(ctx, ContextKey, client)
+func PackClient(ctx context.Context, client *Client) context.Context {
+	return context.WithValue(ctx, ContextClientKey, client)
 }
 
-func UnpackContext(ctx context.Context) *Client {
-	logger, ok := ctx.Value(ContextKey).(*Client)
+func UnpackClient(ctx context.Context) *Client {
+	logger, ok := ctx.Value(ContextClientKey).(*Client)
 	if !ok {
 		return nil
 	}
