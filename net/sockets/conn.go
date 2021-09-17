@@ -33,21 +33,21 @@ type Conn interface {
 	// BytesReceived returns the total number of bytes received
 	BytesReceived() uint64
 
-	// OnMessage sets handler for incoming message
+	// HandleMsg sets handler for incoming message
 	// Encoder used to decode message, use SetEncoder to change it
 	//
 	// Multiple handlers allowed
-	OnMessage(handler Handler)
+	HandleMsg(handler Handler)
 
-	// OnError sets callback for non-critical connection errors
+	// HandleError sets callback for non-critical connection errors
 	// Multiple callbacks allowed
-	OnError(func(err error))
+	HandleError(func(err error))
 
-	// OnFatal sets callback for critical handler errors (usually panics)
+	// HandleFatal sets callback for critical handler errors (usually panics)
 	// Only one callback allowed, next calls will replace callback
-	OnFatal(func(topic string, data interface{}, msg interface{}))
+	HandleFatal(func(topic string, data interface{}, msg interface{}))
 
-	// OnClose sets callback for connection closure
+	// HandleClose sets callback for connection closure
 	// Multiple callbacks allowed
-	OnClose(func(err error))
+	HandleClose(func(err error))
 }

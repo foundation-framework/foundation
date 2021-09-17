@@ -1,13 +1,11 @@
-package log
+package zaputil
 
 import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-type Logger = zap.Logger
-
-func NewProductionLogger(output ...string) (*Logger, error) {
+func NewProductionLogger(output ...string) (*zap.Logger, error) {
 	if len(output) == 0 {
 		output = []string{"stdout"}
 	}
@@ -41,7 +39,7 @@ func NewProductionLogger(output ...string) (*Logger, error) {
 	return logger, nil
 }
 
-func NewDevelopmentLogger(output ...string) (*Logger, error) {
+func NewDevelopmentLogger(output ...string) (*zap.Logger, error) {
 	if len(output) == 0 {
 		output = []string{"stdout"}
 	}

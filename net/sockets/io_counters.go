@@ -1,13 +1,13 @@
-package utils
+package sockets
 
 import "io"
 
-type WriteCounter struct {
+type writeCounter struct {
 	writer io.Writer
 	count  uint64
 }
 
-func (w *WriteCounter) Write(data []byte) (int, error) {
+func (w *writeCounter) Write(data []byte) (int, error) {
 	n, err := w.writer.Write(data)
 	if err != nil {
 		return 0, err
@@ -17,20 +17,20 @@ func (w *WriteCounter) Write(data []byte) (int, error) {
 	return n, nil
 }
 
-func (w *WriteCounter) Reset(writer io.Writer) {
+func (w *writeCounter) Reset(writer io.Writer) {
 	w.writer = writer
 }
 
-func (w *WriteCounter) Count() uint64 {
+func (w *writeCounter) Count() uint64 {
 	return w.count
 }
 
-type ReadCounter struct {
+type readCounter struct {
 	reader io.Reader
 	count  uint64
 }
 
-func (w *ReadCounter) Read(data []byte) (int, error) {
+func (w *readCounter) Read(data []byte) (int, error) {
 	n, err := w.reader.Read(data)
 	if err != nil {
 		return 0, err
@@ -40,10 +40,10 @@ func (w *ReadCounter) Read(data []byte) (int, error) {
 	return n, nil
 }
 
-func (w *ReadCounter) ResetReader(reader io.Reader) {
+func (w *readCounter) ResetReader(reader io.Reader) {
 	w.reader = reader
 }
 
-func (w *ReadCounter) Count() uint64 {
+func (w *readCounter) Count() uint64 {
 	return w.count
 }

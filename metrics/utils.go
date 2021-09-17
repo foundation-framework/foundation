@@ -1,6 +1,6 @@
-package utils
+package metrics
 
-func StringSlicePairs(slice []string) map[string]string {
+func stringSlicePairs(slice []string) map[string]string {
 	if len(slice) == 0 {
 		return map[string]string{}
 	}

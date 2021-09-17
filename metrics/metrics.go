@@ -1,12 +1,12 @@
 package metrics
 
-import "github.com/intale-llc/foundation/transport/http"
+import "net/http"
 
 type Metrics interface {
 	NewCounter(name, description string, labels ...string) Counter
 	NewGauge(name, description string, labels ...string) Gauge
 
-	Handle(path string, listener http.Listener)
+	Handler() http.Handler
 }
 
 type Counter interface {

@@ -2,23 +2,17 @@ package session
 
 import (
 	"github.com/Workiva/go-datastructures/set"
-	"github.com/intale-llc/foundation/rand"
-	"github.com/intale-llc/foundation/transport/sockets"
+	"github.com/intale-llc/foundation/net/sockets"
+	"github.com/intale-llc/foundation/utils/rand"
 )
 
 type ClientPool struct {
-	rooms          map[string]*set.Set
-	accessLevelFun func(client *Client) AccessLevel
+	rooms map[string]*set.Set
 }
 
-func NewClientPool(accessLevelFun func(client *Client) AccessLevel) *ClientPool {
-	if accessLevelFun == nil {
-		accessLevelFun = accessLevelFunDefault
-	}
-
+func NewClientPool() *ClientPool {
 	return &ClientPool{
-		rooms:          map[string]*set.Set{},
-		accessLevelFun: accessLevelFun,
+		rooms: map[string]*set.Set{},
 	}
 }
 
