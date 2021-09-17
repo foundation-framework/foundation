@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/Workiva/go-datastructures/set"
-	"github.com/intale-llc/foundation/transport/sockets"
+	"github.com/intale-llc/foundation/net/sockets"
 )
 
 type Data interface {
@@ -55,11 +55,17 @@ func (c *Client) SetData(data interface{}) {
 	c.data = data
 }
 
-func (c *Client) Access(level AccessLevel) bool {
+func (c *Client) Check(fns ...func(c *Client) bool) bool {
 	c.rmux.RLock()
 	defer c.rmux.RUnlock()
 
-	return c.pool.accessLevelFun(c) >= level
+	for _, fn := range fns {
+		if !fn(c) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (c *Client) Join(room string) {

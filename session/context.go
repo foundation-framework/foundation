@@ -1,6 +1,8 @@
 package session
 
-import "context"
+import (
+	"context"
+)
 
 var (
 	ContextClientKey = "client"

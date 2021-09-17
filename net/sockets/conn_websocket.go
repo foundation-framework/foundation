@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"runtime/debug"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/intale-llc/foundation/internal/utils"
 )
 
 var (
@@ -19,22 +19,22 @@ var (
 
 type websocketConn struct {
 	conn     *websocket.Conn
-	listener *websocketListener
+	listener *websocketServer
 	encoder  Encoder
 
 	pingTicker  *time.Ticker
 	writerMutex sync.Mutex
 
-	readCounter  utils.ReadCounter
-	writeCounter utils.WriteCounter
+	readCounter  readCounter
+	writeCounter writeCounter
 
-	onMessage map[string]Handler
-	onClose   []func(err error)
-	onError   []func(err error)
-	onFatal   func(topic string, data interface{}, msg interface{})
+	msgHandlers   map[string]Handler
+	closeHandlers []func(err error)
+	errorHandlers []func(err error)
+	fatalHandler  func(topic string, data interface{}, msg interface{})
 }
 
-func newWebsocketConn(conn *websocket.Conn, listener *websocketListener) Conn {
+func newWebsocketConn(conn *websocket.Conn, listener *websocketServer) Conn {
 	result := &websocketConn{
 		conn:     conn,
 		listener: listener,
@@ -42,9 +42,9 @@ func newWebsocketConn(conn *websocket.Conn, listener *websocketListener) Conn {
 
 		pingTicker: time.NewTicker(pingTimeout),
 
-		onMessage: map[string]Handler{},
-		onClose:   []func(err error){},
-		onError:   []func(err error){},
+		msgHandlers:   map[string]Handler{},
+		closeHandlers: []func(err error){},
+		errorHandlers: []func(err error){},
 		// onFatal must be nil to print default messages to terminal
 	}
 
@@ -86,12 +86,12 @@ func (c *websocketConn) Write(topic string, data interface{}) error {
 
 	if err := c.writeMessage(topic, data); err != nil {
 		// writeMessage can only return network errors that will be handled in readLoop
-		c.callErrorCb(err)
+		c.callErrorHandlers(err)
 	}
 
 	if err := writer.Close(); err != nil {
 		// Not critical error (any critical errors we handle inside read loop)
-		c.callErrorCb(err)
+		c.callErrorHandlers(err)
 	}
 
 	return nil
@@ -138,39 +138,39 @@ func (c *websocketConn) BytesReceived() uint64 {
 	return c.readCounter.Count()
 }
 
-func (c *websocketConn) OnMessage(handler Handler) {
-	c.onMessage[handler.Topic()] = handler
+func (c *websocketConn) HandleMsg(handler Handler) {
+	c.msgHandlers[handler.Topic()] = handler
 }
 
-func (c *websocketConn) OnClose(fun func(err error)) {
-	c.onClose = append(c.onClose, fun)
+func (c *websocketConn) HandleClose(fun func(err error)) {
+	c.closeHandlers = append(c.closeHandlers, fun)
 }
 
-func (c *websocketConn) callCloseCb(err error) {
-	for _, fun := range c.onClose {
+func (c *websocketConn) callCloseHandlers(err error) {
+	for _, fun := range c.closeHandlers {
 		fun(err)
 	}
 }
 
-func (c *websocketConn) OnError(fun func(err error)) {
-	c.onError = append(c.onError, fun)
+func (c *websocketConn) HandleError(fun func(err error)) {
+	c.errorHandlers = append(c.errorHandlers, fun)
 }
 
-func (c *websocketConn) callErrorCb(err error) {
-	for _, fun := range c.onError {
+func (c *websocketConn) callErrorHandlers(err error) {
+	for _, fun := range c.errorHandlers {
 		fun(err)
 	}
 }
 
-func (c *websocketConn) OnFatal(fun func(topic string, data interface{}, msg interface{})) {
-	c.onFatal = fun
+func (c *websocketConn) HandleFatal(fun func(topic string, data interface{}, msg interface{})) {
+	c.fatalHandler = fun
 }
 
 func (c *websocketConn) readLoop() {
 	for {
 		messageType, reader, err := c.conn.NextReader()
 		if err != nil {
-			c.callCloseCb(err)
+			c.callCloseHandlers(err)
 
 			// We MUST explicitly close connection
 			// Without this close, a connection file descriptor is sometimes leaked
@@ -194,19 +194,19 @@ func (c *websocketConn) readMessage() {
 
 	topic, err := c.encoder.ReadTopic()
 	if err != nil {
-		c.callErrorCb(err)
+		c.callErrorHandlers(err)
 		return
 	}
 
-	handler := c.onMessage[topic]
+	handler := c.msgHandlers[topic]
 	if handler == nil {
-		c.callErrorCb(fmt.Errorf("no handler found for \"%s\" topic", topic))
+		c.callErrorHandlers(fmt.Errorf("no handler found for \"%s\" topic", topic))
 		return
 	}
 
 	data := handler.Model()
 	if err := c.encoder.ReadData(data); err != nil {
-		c.callErrorCb(err)
+		c.callErrorHandlers(err)
 		return
 	}
 
@@ -219,7 +219,7 @@ func (c *websocketConn) readMessage() {
 		}
 
 		if err := c.Write(topic, replyData); err != nil {
-			c.callErrorCb(err)
+			c.callErrorHandlers(err)
 		}
 	}()
 }
@@ -230,12 +230,12 @@ func (c *websocketConn) panicCatcher(topic string, data interface{}) {
 		return
 	}
 
-	if c.onFatal != nil {
-		c.onFatal(topic, data, msg)
+	if c.fatalHandler != nil {
+		c.fatalHandler(topic, data, msg)
 		return
 	}
 
-	log.Printf("sockets: panic on '%s' handler: %s\n%s", topic, msg, utils.StackString())
+	log.Printf("websocket: panic on '%s' handler: %s\n%s", topic, msg, string(debug.Stack()))
 }
 
 func (c *websocketConn) pingLoop() {

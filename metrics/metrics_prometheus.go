@@ -1,8 +1,8 @@
 package metrics
 
 import (
-	"github.com/intale-llc/foundation/internal/utils"
-	"github.com/intale-llc/foundation/transport/http"
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -35,13 +35,11 @@ func (m *prometheusMetrics) NewGauge(name, description string, labels ...string)
 	return &prometheusGauge{vec: vec}
 }
 
-func (m *prometheusMetrics) Handle(path string, listener http.Listener) {
-	router := listener.Router()
-
-	router.Handle(path, promhttp.HandlerFor(
+func (m *prometheusMetrics) Handler() http.Handler {
+	return promhttp.HandlerFor(
 		m.registry,
 		promhttp.HandlerOpts{},
-	))
+	)
 }
 
 type prometheusCounter struct {
@@ -52,7 +50,7 @@ type prometheusCounter struct {
 func (c *prometheusCounter) With(labels ...string) Counter {
 	return &prometheusCounter{
 		vec:    c.vec,
-		metric: c.vec.With(utils.StringSlicePairs(labels)),
+		metric: c.vec.With(stringSlicePairs(labels)),
 	}
 }
 
@@ -83,7 +81,7 @@ type prometheusGauge struct {
 func (c *prometheusGauge) With(labels ...string) Gauge {
 	return &prometheusGauge{
 		vec:    c.vec,
-		metric: c.vec.With(utils.StringSlicePairs(labels)),
+		metric: c.vec.With(stringSlicePairs(labels)),
 	}
 }
 
