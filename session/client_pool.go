@@ -21,6 +21,7 @@ func (p *ClientPool) NewClient(connection sockets.Conn) *Client {
 		Conn: connection,
 		pool: p,
 		id:   rand.UUIDv4(),
+		data: map[string]interface{}{},
 	}
 }
 

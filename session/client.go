@@ -18,7 +18,7 @@ type Client struct {
 	rooms *set.Set
 
 	id   string
-	data interface{}
+	data map[string]interface{}
 	rmux sync.RWMutex
 }
 
@@ -26,33 +26,18 @@ func (c *Client) ID() string {
 	return c.id
 }
 
-func (c *Client) DataID() string {
+func (c *Client) Data(key string) interface{} {
 	c.rmux.RLock()
 	defer c.rmux.RUnlock()
 
-	if c.data == nil {
-		return ""
-	}
-
-	if d, ok := c.data.(Data); ok {
-		return d.ID()
-	}
-
-	return ""
+	return c.data[key]
 }
 
-func (c *Client) Data() interface{} {
-	c.rmux.RLock()
-	defer c.rmux.RUnlock()
-
-	return c.data
-}
-
-func (c *Client) SetData(data interface{}) {
+func (c *Client) SetData(key string, data interface{}) {
 	c.rmux.Lock()
 	defer c.rmux.Unlock()
 
-	c.data = data
+	c.data[key] = data
 }
 
 func (c *Client) Check(fns ...func(c *Client) bool) bool {
