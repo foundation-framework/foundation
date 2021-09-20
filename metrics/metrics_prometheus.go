@@ -47,17 +47,50 @@ type prometheusCounter struct {
 	metric prometheus.Counter
 }
 
-func (c *prometheusCounter) With(labels ...string) Counter {
+func (c *prometheusCounter) With(labels ...string) (Counter, error) {
+	metric, err := c.vec.GetMetricWith(stringSlicePairs(labels))
+	if err != nil {
+		return nil, err
+	}
+
 	return &prometheusCounter{
 		vec:    c.vec,
-		metric: c.vec.With(stringSlicePairs(labels)),
-	}
+		metric: metric,
+	}, nil
 }
 
-func (c *prometheusCounter) WithValues(values ...string) Counter {
+func (c *prometheusCounter) MustWith(labels ...string) Counter {
+	metric, err := c.vec.GetMetricWith(stringSlicePairs(labels))
+	if err != nil {
+		panic("failed to get gauge with provided labels: " + err.Error())
+	}
+
 	return &prometheusCounter{
 		vec:    c.vec,
-		metric: c.vec.WithLabelValues(values...),
+		metric: metric,
+	}
+}
+func (c *prometheusCounter) WithValues(values ...string) (Counter, error) {
+	metric, err := c.vec.GetMetricWithLabelValues(values...)
+	if err != nil {
+		return nil, err
+	}
+
+	return &prometheusCounter{
+		vec:    c.vec,
+		metric: metric,
+	}, nil
+}
+
+func (c *prometheusCounter) MustWithValues(values ...string) Counter {
+	metric, err := c.vec.GetMetricWithLabelValues(values...)
+	if err != nil {
+		panic("failed to get gauge with provided values: " + err.Error())
+	}
+
+	return &prometheusCounter{
+		vec:    c.vec,
+		metric: metric,
 	}
 }
 
@@ -78,20 +111,53 @@ type prometheusGauge struct {
 	metric prometheus.Gauge
 }
 
-func (c *prometheusGauge) With(labels ...string) Gauge {
+func (c *prometheusGauge) With(labels ...string) (Gauge, error) {
+	metric, err := c.vec.GetMetricWith(stringSlicePairs(labels))
+	if err != nil {
+		return nil, err
+	}
+
 	return &prometheusGauge{
 		vec:    c.vec,
-		metric: c.vec.With(stringSlicePairs(labels)),
+		metric: metric,
+	}, nil
+}
+
+func (c *prometheusGauge) MustWith(labels ...string) Gauge {
+	metric, err := c.vec.GetMetricWith(stringSlicePairs(labels))
+	if err != nil {
+		panic("failed to get gauge with provided labels: " + err.Error())
+	}
+
+	return &prometheusGauge{
+		vec:    c.vec,
+		metric: metric,
 	}
 }
 
-func (c *prometheusGauge) WithValues(values ...string) Gauge {
+func (c *prometheusGauge) WithValues(values ...string) (Gauge, error) {
+	metric, err := c.vec.GetMetricWithLabelValues(values...)
+	if err != nil {
+		return nil, err
+	}
+
 	return &prometheusGauge{
 		vec:    c.vec,
-		metric: c.vec.WithLabelValues(values...),
-	}
+		metric: metric,
+	}, nil
 }
 
+func (c *prometheusGauge) MustWithValues(values ...string) Gauge {
+	metric, err := c.vec.GetMetricWithLabelValues(values...)
+	if err != nil {
+		panic("failed to get gauge with provided values:" + err.Error())
+	}
+
+	return &prometheusGauge{
+		vec:    c.vec,
+		metric: metric,
+	}
+}
 func (c *prometheusGauge) Inc() {
 	if c.metric != nil {
 		c.metric.Inc()

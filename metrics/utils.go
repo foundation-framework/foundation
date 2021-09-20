@@ -7,9 +7,7 @@ func stringSlicePairs(slice []string) map[string]string {
 
 	result := map[string]string{}
 	for i := 0; i < len(slice); i += 2 {
-		if i+1 == len(slice) {
-			result[slice[i]] = ""
-		} else {
+		if i+1 != len(slice) {
 			result[slice[i]] = slice[i+1]
 		}
 	}

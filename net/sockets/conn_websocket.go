@@ -103,11 +103,9 @@ func (c *websocketConn) writeMessage(topic string, data interface{}) error {
 	if err := c.encoder.WriteTopic(topic); err != nil {
 		return err
 	}
-
 	if err := c.encoder.WriteData(data); err != nil {
 		return err
 	}
-
 	if err := c.encoder.Flush(); err != nil {
 		return err
 	}

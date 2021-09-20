@@ -14,6 +14,13 @@ func (r *Reader) Read(key string, dst interface{}) error {
 	return r.provider.Get(key).Populate(dst)
 }
 
+// MustRead do the same as Read, but panics on error
+func (r *Reader) MustRead(key string, dst interface{}) {
+	if err := r.provider.Get(key).Populate(dst); err != nil {
+		panic("failed to read config: " + err.Error())
+	}
+}
+
 // NewReader creates new configuration reader
 // Only YAML format supported
 func NewReader(files ...string) (*Reader, error) {
@@ -29,4 +36,14 @@ func NewReader(files ...string) (*Reader, error) {
 	}
 
 	return &Reader{provider: provider}, nil
+}
+
+// NewReaderMust do the same as NewReader, but panics on error
+func NewReaderMust(files ...string) *Reader {
+	reader, err := NewReader(files...)
+	if err != nil {
+		panic("failed to create reader: " + err.Error())
+	}
+
+	return reader
 }
