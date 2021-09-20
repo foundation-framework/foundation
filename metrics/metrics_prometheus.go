@@ -59,17 +59,6 @@ func (c *prometheusCounter) With(labels ...string) (Counter, error) {
 	}, nil
 }
 
-func (c *prometheusCounter) MustWith(labels ...string) Counter {
-	metric, err := c.vec.GetMetricWith(stringSlicePairs(labels))
-	if err != nil {
-		panic("failed to get gauge with provided labels: " + err.Error())
-	}
-
-	return &prometheusCounter{
-		vec:    c.vec,
-		metric: metric,
-	}
-}
 func (c *prometheusCounter) WithValues(values ...string) (Counter, error) {
 	metric, err := c.vec.GetMetricWithLabelValues(values...)
 	if err != nil {
@@ -80,18 +69,6 @@ func (c *prometheusCounter) WithValues(values ...string) (Counter, error) {
 		vec:    c.vec,
 		metric: metric,
 	}, nil
-}
-
-func (c *prometheusCounter) MustWithValues(values ...string) Counter {
-	metric, err := c.vec.GetMetricWithLabelValues(values...)
-	if err != nil {
-		panic("failed to get gauge with provided values: " + err.Error())
-	}
-
-	return &prometheusCounter{
-		vec:    c.vec,
-		metric: metric,
-	}
 }
 
 func (c *prometheusCounter) Inc() {
@@ -123,18 +100,6 @@ func (c *prometheusGauge) With(labels ...string) (Gauge, error) {
 	}, nil
 }
 
-func (c *prometheusGauge) MustWith(labels ...string) Gauge {
-	metric, err := c.vec.GetMetricWith(stringSlicePairs(labels))
-	if err != nil {
-		panic("failed to get gauge with provided labels: " + err.Error())
-	}
-
-	return &prometheusGauge{
-		vec:    c.vec,
-		metric: metric,
-	}
-}
-
 func (c *prometheusGauge) WithValues(values ...string) (Gauge, error) {
 	metric, err := c.vec.GetMetricWithLabelValues(values...)
 	if err != nil {
@@ -147,17 +112,6 @@ func (c *prometheusGauge) WithValues(values ...string) (Gauge, error) {
 	}, nil
 }
 
-func (c *prometheusGauge) MustWithValues(values ...string) Gauge {
-	metric, err := c.vec.GetMetricWithLabelValues(values...)
-	if err != nil {
-		panic("failed to get gauge with provided values:" + err.Error())
-	}
-
-	return &prometheusGauge{
-		vec:    c.vec,
-		metric: metric,
-	}
-}
 func (c *prometheusGauge) Inc() {
 	if c.metric != nil {
 		c.metric.Inc()

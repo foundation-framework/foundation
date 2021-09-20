@@ -25,14 +25,8 @@ type Counter interface {
 	// doesn't exist this method will create it
 	With(labelsAndValues ...string) (Counter, error)
 
-	// MustWith do the same as With, but panics on error
-	MustWith(labelsAndValues ...string) Counter
-
 	// WithValues returns Counter with labels that have provided values.
 	WithValues(values ...string) (Counter, error)
-
-	// MustWithValues do the same as WithValues, but panics on error
-	MustWithValues(labelsAndValues ...string) Counter
 
 	// Inc increments counter
 	Inc()
@@ -48,14 +42,8 @@ type Gauge interface {
 	// doesn't exist this method will create it
 	With(labelsAndValues ...string) (Gauge, error)
 
-	// MustWith do the same as With, but panics on error
-	MustWith(labelsAndValues ...string) Gauge
-
 	// WithValues returns Counter with labels that have provided values.
 	WithValues(values ...string) (Gauge, error)
-
-	// MustWithValues do the same as WithValues, but panics on error
-	MustWithValues(labelsAndValues ...string) Gauge
 
 	// Inc increments gauge
 	Inc()
