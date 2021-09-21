@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/intale-llc/foundation/utils/units"
+	"github.com/intale-llc/foundation/units"
 )
 
 type Upgrader websocket.Upgrader

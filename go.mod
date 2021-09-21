@@ -7,6 +7,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/prometheus/client_golang v1.11.0
+	github.com/sykesm/zap-logfmt v0.0.4
 	github.com/tinylib/msgp v1.1.6
 	go.uber.org/config v1.4.0
 	go.uber.org/zap v1.19.1

@@ -1,4 +1,4 @@
-package rand
+package randutil
 
 import (
 	"crypto/rand"
@@ -11,7 +11,7 @@ import (
 func UUIDv1() string {
 	u, err := uuid.NewUUID()
 	if err != nil {
-		panic("rand: unexpected error: " + err.Error())
+		panic("randutil: unexpected error: " + err.Error())
 	}
 
 	return u.String()
@@ -20,7 +20,7 @@ func UUIDv1() string {
 func UUIDv4() string {
 	u, err := uuid.NewRandom()
 	if err != nil {
-		panic("rand: error occurred while generating random data: " + err.Error())
+		panic("randutil: error occurred while generating random data: " + err.Error())
 	}
 
 	return u.String()
@@ -28,12 +28,12 @@ func UUIDv4() string {
 
 func Int(min, max int) int {
 	if min > max {
-		panic("rand: min is greater than max")
+		panic("randutil: min is greater than max")
 	}
 
 	bytes := make([]byte, 4)
 	if _, err := rand.Read(bytes); err != nil {
-		panic("rand: error occurred while generating random data: " + err.Error())
+		panic("randutil: error occurred while generating random data: " + err.Error())
 	}
 
 	return int(binary.BigEndian.Uint32(bytes))%(max-min+1) + min
@@ -42,7 +42,7 @@ func Int(min, max int) int {
 func Hex(size int) string {
 	bytes := make([]byte, size)
 	if _, err := rand.Read(bytes); err != nil {
-		panic("rand: error occurred while generating random data: " + err.Error())
+		panic("randutil: error occurred while generating random data: " + err.Error())
 	}
 
 	return hex.EncodeToString(bytes)
