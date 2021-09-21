@@ -7,17 +7,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type prometheusMetrics struct {
+type prometheusInstance struct {
 	registry *prometheus.Registry
 }
 
-func NewPrometheusMetrics() Metrics {
-	return &prometheusMetrics{
+func NewPrometheusInstance() Instance {
+	return &prometheusInstance{
 		registry: prometheus.NewRegistry(),
 	}
 }
 
-func (m *prometheusMetrics) NewCounter(name, description string, labels ...string) Counter {
+func (m *prometheusInstance) NewCounter(name, description string, labels ...string) Counter {
 	vec := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: name,
 		Help: description,
@@ -26,7 +26,7 @@ func (m *prometheusMetrics) NewCounter(name, description string, labels ...strin
 	return &prometheusCounter{vec: vec}
 }
 
-func (m *prometheusMetrics) NewGauge(name, description string, labels ...string) Gauge {
+func (m *prometheusInstance) NewGauge(name, description string, labels ...string) Gauge {
 	vec := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name: name,
 		Help: description,
@@ -35,7 +35,7 @@ func (m *prometheusMetrics) NewGauge(name, description string, labels ...string)
 	return &prometheusGauge{vec: vec}
 }
 
-func (m *prometheusMetrics) Handler() http.Handler {
+func (m *prometheusInstance) Handler() http.Handler {
 	return promhttp.HandlerFor(
 		m.registry,
 		promhttp.HandlerOpts{},

@@ -2,8 +2,8 @@ package metrics
 
 import "net/http"
 
-// Metrics describes basic metrics provider
-type Metrics interface {
+// Instance describes basic metrics provider
+type Instance interface {
 
 	// NewCounter creates counter metric
 	// See Counter for more information
