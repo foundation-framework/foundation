@@ -5,7 +5,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func NewLogfmtLogger(output ...string) (*zap.Logger, error) {
+func NewLogfmtLogger(development bool, output ...string) (*zap.Logger, error) {
 	if len(output) == 0 {
 		output = []string{"stdout"}
 	}
@@ -13,7 +13,7 @@ func NewLogfmtLogger(output ...string) (*zap.Logger, error) {
 	config := zap.Config{
 		Level:         zap.NewAtomicLevelAt(zapcore.DebugLevel),
 		Encoding:      "logfmt",
-		Development:   true,
+		Development:   development,
 		DisableCaller: true,
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "ts",
@@ -41,14 +41,16 @@ func NewLogfmtLogger(output ...string) (*zap.Logger, error) {
 	return logger, nil
 }
 
-func NewConsoleLogger(output ...string) (*zap.Logger, error) {
+func NewConsoleLogger(development bool, output ...string) (*zap.Logger, error) {
 	if len(output) == 0 {
 		output = []string{"stdout"}
 	}
 
 	config := zap.Config{
-		Level:    zap.NewAtomicLevelAt(zapcore.InfoLevel),
-		Encoding: "console",
+		Level:         zap.NewAtomicLevelAt(zapcore.InfoLevel),
+		Encoding:      "console",
+		Development:   development,
+		DisableCaller: true,
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "T",
 			LevelKey:       "L",
@@ -75,14 +77,16 @@ func NewConsoleLogger(output ...string) (*zap.Logger, error) {
 	return logger, nil
 }
 
-func NewJSONLogger(output ...string) (*zap.Logger, error) {
+func NewJSONLogger(development bool, output ...string) (*zap.Logger, error) {
 	if len(output) == 0 {
 		output = []string{"stdout"}
 	}
 
 	config := zap.Config{
-		Level:    zap.NewAtomicLevelAt(zapcore.InfoLevel),
-		Encoding: "json",
+		Level:         zap.NewAtomicLevelAt(zapcore.InfoLevel),
+		Encoding:      "json",
+		Development:   development,
+		DisableCaller: true,
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "ts",
 			LevelKey:       "level",
