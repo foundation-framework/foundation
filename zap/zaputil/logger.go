@@ -33,7 +33,7 @@ func NewLogfmtLogger(development bool, output ...string) (*zap.Logger, error) {
 		ErrorOutputPaths: output,
 	}
 
-	logger, err := config.Build(zap.AddCallerSkip(1))
+	logger, err := config.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func NewConsoleLogger(development bool, output ...string) (*zap.Logger, error) {
 		ErrorOutputPaths: output,
 	}
 
-	logger, err := config.Build(zap.AddCallerSkip(1))
+	logger, err := config.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func NewJSONLogger(development bool, output ...string) (*zap.Logger, error) {
 		ErrorOutputPaths: output,
 	}
 
-	logger, err := config.Build(zap.AddCallerSkip(1))
+	logger, err := config.Build()
 	if err != nil {
 		return nil, err
 	}
