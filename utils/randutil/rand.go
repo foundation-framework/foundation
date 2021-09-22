@@ -39,6 +39,10 @@ func Int(min, max int) int {
 	return int(binary.BigEndian.Uint32(bytes))%(max-min+1) + min
 }
 
+func IntRange(r [2]int) int {
+	return Int(r[0], r[1])
+}
+
 func Hex(size int) string {
 	bytes := make([]byte, size)
 	if _, err := rand.Read(bytes); err != nil {
