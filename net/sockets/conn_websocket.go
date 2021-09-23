@@ -136,8 +136,10 @@ func (c *websocketConn) BytesReceived() uint64 {
 	return c.readCounter.Count()
 }
 
-func (c *websocketConn) HandleMsg(handler Handler) {
-	c.msgHandlers[handler.Topic()] = handler
+func (c *websocketConn) HandleMsg(handlers ...Handler) {
+	for _, handler := range handlers {
+		c.msgHandlers[handler.Topic()] = handler
+	}
 }
 
 func (c *websocketConn) HandleClose(fun func(err error)) {

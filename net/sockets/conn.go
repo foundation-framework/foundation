@@ -37,7 +37,7 @@ type Conn interface {
 	// Encoder used to decode message, use SetEncoder to change it
 	//
 	// Multiple handlers allowed
-	HandleMsg(handler Handler)
+	HandleMsg(handlers ...Handler)
 
 	// HandleError sets callback for non-critical connection errors
 	// Multiple callbacks allowed
