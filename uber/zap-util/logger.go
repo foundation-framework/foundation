@@ -5,40 +5,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func NewLogfmtLogger(development bool, output ...string) (*zap.Logger, error) {
-	if len(output) == 0 {
-		output = []string{"stdout"}
+func levelEnabler(level zapcore.Level) zap.LevelEnablerFunc {
+	return func(l zapcore.Level) bool {
+		return l >= level
 	}
-
-	config := zap.Config{
-		Level:         zap.NewAtomicLevelAt(zapcore.DebugLevel),
-		Encoding:      "logfmt",
-		Development:   development,
-		DisableCaller: true,
-		EncoderConfig: zapcore.EncoderConfig{
-			TimeKey:        "ts",
-			LevelKey:       "level",
-			NameKey:        "logger",
-			CallerKey:      "caller",
-			FunctionKey:    zapcore.OmitKey,
-			MessageKey:     "msg",
-			StacktraceKey:  "stack",
-			LineEnding:     zapcore.DefaultLineEnding,
-			EncodeLevel:    zapcore.LowercaseLevelEncoder,
-			EncodeTime:     zapcore.RFC3339NanoTimeEncoder,
-			EncodeDuration: zapcore.StringDurationEncoder,
-			EncodeCaller:   zapcore.ShortCallerEncoder,
-		},
-		OutputPaths:      output,
-		ErrorOutputPaths: output,
-	}
-
-	logger, err := config.Build()
-	if err != nil {
-		return nil, err
-	}
-
-	return logger, nil
 }
 
 func NewConsoleLogger(development bool, output ...string) (*zap.Logger, error) {
@@ -47,10 +17,11 @@ func NewConsoleLogger(development bool, output ...string) (*zap.Logger, error) {
 	}
 
 	config := zap.Config{
-		Level:         zap.NewAtomicLevelAt(zapcore.InfoLevel),
-		Encoding:      "console",
-		Development:   development,
-		DisableCaller: true,
+		Level:             zap.NewAtomicLevelAt(zapcore.InfoLevel),
+		Encoding:          "console",
+		Development:       development,
+		DisableCaller:     true,
+		DisableStacktrace: true,
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "T",
 			LevelKey:       "L",
@@ -69,7 +40,10 @@ func NewConsoleLogger(development bool, output ...string) (*zap.Logger, error) {
 		ErrorOutputPaths: output,
 	}
 
-	logger, err := config.Build()
+	logger, err := config.Build(
+		zap.AddStacktrace(levelEnabler(zap.FatalLevel)),
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +57,11 @@ func NewJSONLogger(development bool, output ...string) (*zap.Logger, error) {
 	}
 
 	config := zap.Config{
-		Level:         zap.NewAtomicLevelAt(zapcore.InfoLevel),
-		Encoding:      "json",
-		Development:   development,
-		DisableCaller: true,
+		Level:             zap.NewAtomicLevelAt(zapcore.InfoLevel),
+		Encoding:          "json",
+		Development:       development,
+		DisableCaller:     true,
+		DisableStacktrace: true,
 		EncoderConfig: zapcore.EncoderConfig{
 			TimeKey:        "ts",
 			LevelKey:       "level",
@@ -105,7 +80,10 @@ func NewJSONLogger(development bool, output ...string) (*zap.Logger, error) {
 		ErrorOutputPaths: output,
 	}
 
-	logger, err := config.Build()
+	logger, err := config.Build(
+		zap.AddStacktrace(levelEnabler(zap.FatalLevel)),
+	)
+
 	if err != nil {
 		return nil, err
 	}

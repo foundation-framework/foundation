@@ -8,7 +8,7 @@ type stopHandler struct {
 	ctx   context.Context
 	topic string
 	model interface{}
-	fns   []func(context.Context, interface{}) (string, interface{})
+	fns   []HandlerFunc
 }
 
 // NewStopHandler will create a Handler
@@ -18,7 +18,7 @@ func NewStopHandler(
 	ctx context.Context,
 	topic string,
 	model interface{},
-	fns ...func(context.Context, interface{}) (string, interface{}),
+	fns ...HandlerFunc,
 ) Handler {
 	return &stopHandler{
 		ctx:   ctx,
@@ -53,10 +53,10 @@ func (s *stopHandler) Serve(ctx context.Context, data interface{}) (string, inte
 }
 
 type stopLastHandler struct {
+	ctx   context.Context
 	topic string
 	model interface{}
-	ctx   context.Context
-	fns   []func(context.Context, interface{}) (string, interface{})
+	fns   []HandlerFunc
 }
 
 // NewStopLastHandler will create a Handler
@@ -67,7 +67,7 @@ func NewStopLastHandler(
 	ctx context.Context,
 	topic string,
 	model interface{},
-	fns ...func(context.Context, interface{}) (string, interface{}),
+	fns ...HandlerFunc,
 ) Handler {
 	return &stopLastHandler{
 		ctx:   ctx,

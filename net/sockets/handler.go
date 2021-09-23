@@ -1,6 +1,8 @@
 package sockets
 
-import "context"
+import (
+	"context"
+)
 
 // Handler describes handler for incoming message on the connection
 type Handler interface {
@@ -22,3 +24,6 @@ type Handler interface {
 	// Any data returned by this method will be sent back
 	Serve(ctx context.Context, data interface{}) (string, interface{})
 }
+
+// HandlerFunc represents Handler calling function
+type HandlerFunc func(ctx context.Context, data interface{}) (string, interface{})
