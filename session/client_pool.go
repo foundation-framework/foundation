@@ -3,7 +3,7 @@ package session
 import (
 	"github.com/Workiva/go-datastructures/set"
 	"github.com/intale-llc/foundation/net/sockets"
-	"github.com/intale-llc/foundation/utils/rand-util"
+	"github.com/intale-llc/foundation/utils/rand"
 )
 
 type ClientPool struct {
