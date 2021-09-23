@@ -210,10 +210,14 @@ func (c *websocketConn) readMessage() {
 
 	go func() {
 		defer c.panicCatcher(topic, data)
-		replyData := handler.Serve(context.TODO(), data)
+		replyTopic, replyData := handler.Serve(context.TODO(), data)
 
 		if replyData == nil {
 			return
+		}
+
+		if replyTopic == "" {
+			replyTopic = topic
 		}
 
 		if err := c.Write(topic, replyData); err != nil {

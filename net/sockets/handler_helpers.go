@@ -7,7 +7,7 @@ import (
 type stopHandler struct {
 	topic string
 	model interface{}
-	fns   []func(context.Context, interface{}) interface{}
+	fns   []func(context.Context, interface{}) (string, interface{})
 }
 
 // NewStopHandler will create a Handler
@@ -16,7 +16,7 @@ type stopHandler struct {
 func NewStopHandler(
 	topic string,
 	model interface{},
-	fns ...func(context.Context, interface{}) interface{},
+	fns ...func(context.Context, interface{}) (string, interface{}),
 ) Handler {
 	return &stopHandler{
 		topic: topic,
@@ -33,22 +33,22 @@ func (s *stopHandler) Model() interface{} {
 	return copyInterfaceValue(s.model)
 }
 
-func (s *stopHandler) Serve(ctx context.Context, data interface{}) interface{} {
+func (s *stopHandler) Serve(ctx context.Context, data interface{}) (string, interface{}) {
 	for _, fn := range s.fns {
-		result := fn(ctx, data)
+		replyTopic, replyData := fn(ctx, data)
 
-		if result != nil {
-			return result
+		if replyData != nil {
+			return replyTopic, replyData
 		}
 	}
 
-	return nil
+	return "", nil
 }
 
 type stopLastHandler struct {
 	topic string
 	model interface{}
-	fns   []func(context.Context, interface{}) interface{}
+	fns   []func(context.Context, interface{}) (string, interface{})
 }
 
 // NewStopLastHandler will create a Handler
@@ -58,7 +58,7 @@ type stopLastHandler struct {
 func NewStopLastHandler(
 	topic string,
 	model interface{},
-	fns ...func(context.Context, interface{}) interface{},
+	fns ...func(context.Context, interface{}) (string, interface{}),
 ) Handler {
 	return &stopLastHandler{
 		topic: topic,
@@ -75,21 +75,22 @@ func (s *stopLastHandler) Model() interface{} {
 	return copyInterfaceValue(s.model)
 }
 
-func (s *stopLastHandler) Serve(ctx context.Context, data interface{}) interface{} {
+func (s *stopLastHandler) Serve(ctx context.Context, data interface{}) (string, interface{}) {
 	for i, fn := range s.fns {
-		result := fn(ctx, data)
+		replyTopic, replyData := fn(ctx, data)
 
-		if result == nil {
+		if replyData == nil {
 			continue
 		}
 
 		lastIndex := len(s.fns) - 1
 		if i != lastIndex {
-			return s.fns[lastIndex](ctx, result)
+			return s.fns[lastIndex](ctx, replyData)
 		}
 
-		return result
+		return replyTopic, replyData
 	}
 
-	return nil
+	// Impossible
+	return "", nil
 }

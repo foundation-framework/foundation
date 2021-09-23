@@ -16,6 +16,6 @@ type Handler interface {
 	Model() interface{}
 
 	// Serve used to serve message
-	// Any data returned by this method will be sent back using the same topic
-	Serve(ctx context.Context, data interface{}) interface{}
+	// Any data returned by this method will be sent back
+	Serve(ctx context.Context, data interface{}) (string, interface{})
 }
