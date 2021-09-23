@@ -5,9 +5,9 @@ import (
 )
 
 type stopHandler struct {
+	ctx   context.Context
 	topic string
 	model interface{}
-	ctx   context.Context
 	fns   []func(context.Context, interface{}) (string, interface{})
 }
 
@@ -15,17 +15,21 @@ type stopHandler struct {
 //
 // Any chained function return non-nil result will stop subsequent calls
 func NewStopHandler(
+	ctx context.Context,
 	topic string,
 	model interface{},
-	ctx context.Context,
 	fns ...func(context.Context, interface{}) (string, interface{}),
 ) Handler {
 	return &stopHandler{
+		ctx:   ctx,
 		topic: topic,
 		model: model,
-		ctx:   ctx,
 		fns:   fns,
 	}
+}
+
+func (s *stopHandler) Context() context.Context {
+	return s.ctx
 }
 
 func (s *stopHandler) Topic() string {
@@ -34,10 +38,6 @@ func (s *stopHandler) Topic() string {
 
 func (s *stopHandler) Model() interface{} {
 	return copyInterfaceValue(s.model)
-}
-
-func (s *stopHandler) Context() context.Context {
-	return s.ctx
 }
 
 func (s *stopHandler) Serve(ctx context.Context, data interface{}) (string, interface{}) {
@@ -64,17 +64,21 @@ type stopLastHandler struct {
 // Any chained function return non-nil result will stop subsequent
 // calls and call the last function with that result
 func NewStopLastHandler(
+	ctx context.Context,
 	topic string,
 	model interface{},
-	ctx context.Context,
 	fns ...func(context.Context, interface{}) (string, interface{}),
 ) Handler {
 	return &stopLastHandler{
+		ctx:   ctx,
 		topic: topic,
 		model: model,
-		ctx:   ctx,
 		fns:   fns,
 	}
+}
+
+func (s *stopLastHandler) Context() context.Context {
+	return s.ctx
 }
 
 func (s *stopLastHandler) Topic() string {
@@ -83,10 +87,6 @@ func (s *stopLastHandler) Topic() string {
 
 func (s *stopLastHandler) Model() interface{} {
 	return copyInterfaceValue(s.model)
-}
-
-func (s *stopLastHandler) Context() context.Context {
-	return s.ctx
 }
 
 func (s *stopLastHandler) Serve(ctx context.Context, data interface{}) (string, interface{}) {

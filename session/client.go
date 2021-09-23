@@ -1,6 +1,7 @@
 package session
 
 import (
+	"context"
 	"sync"
 
 	"github.com/Workiva/go-datastructures/set"
@@ -77,4 +78,8 @@ func (c *Client) Broadcast(room string, topic string, data interface{}) {
 		// Ignore any errors
 		_ = client.Write(topic, data)
 	})
+}
+
+func (c *Client) Context() context.Context {
+	return PackClient(context.TODO(), c)
 }
