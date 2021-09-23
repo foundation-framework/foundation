@@ -15,6 +15,9 @@ type Handler interface {
 	// IMPORTANT!!! This method always must return pointer
 	Model() interface{}
 
+	// Context returns context that will be passed to Serve method
+	Context() context.Context
+
 	// Serve used to serve message
 	// Any data returned by this method will be sent back
 	Serve(ctx context.Context, data interface{}) (string, interface{})

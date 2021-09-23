@@ -7,6 +7,7 @@ import (
 type stopHandler struct {
 	topic string
 	model interface{}
+	ctx   context.Context
 	fns   []func(context.Context, interface{}) (string, interface{})
 }
 
@@ -16,11 +17,13 @@ type stopHandler struct {
 func NewStopHandler(
 	topic string,
 	model interface{},
+	ctx context.Context,
 	fns ...func(context.Context, interface{}) (string, interface{}),
 ) Handler {
 	return &stopHandler{
 		topic: topic,
 		model: model,
+		ctx:   ctx,
 		fns:   fns,
 	}
 }
@@ -31,6 +34,10 @@ func (s *stopHandler) Topic() string {
 
 func (s *stopHandler) Model() interface{} {
 	return copyInterfaceValue(s.model)
+}
+
+func (s *stopHandler) Context() context.Context {
+	return s.ctx
 }
 
 func (s *stopHandler) Serve(ctx context.Context, data interface{}) (string, interface{}) {
@@ -48,6 +55,7 @@ func (s *stopHandler) Serve(ctx context.Context, data interface{}) (string, inte
 type stopLastHandler struct {
 	topic string
 	model interface{}
+	ctx   context.Context
 	fns   []func(context.Context, interface{}) (string, interface{})
 }
 
@@ -58,11 +66,13 @@ type stopLastHandler struct {
 func NewStopLastHandler(
 	topic string,
 	model interface{},
+	ctx context.Context,
 	fns ...func(context.Context, interface{}) (string, interface{}),
 ) Handler {
 	return &stopLastHandler{
 		topic: topic,
 		model: model,
+		ctx:   ctx,
 		fns:   fns,
 	}
 }
@@ -73,6 +83,10 @@ func (s *stopLastHandler) Topic() string {
 
 func (s *stopLastHandler) Model() interface{} {
 	return copyInterfaceValue(s.model)
+}
+
+func (s *stopLastHandler) Context() context.Context {
+	return s.ctx
 }
 
 func (s *stopLastHandler) Serve(ctx context.Context, data interface{}) (string, interface{}) {
