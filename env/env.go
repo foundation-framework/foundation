@@ -1,14 +1,14 @@
-package configutil
+package env
 
 import (
 	"os"
 	"strings"
 )
 
-func ReadEnv(name string) string {
+func Read(name string) string {
 	return os.Getenv(name)
 }
 
-func ReadEnvArray(name string) []string {
+func ReadSlice(name string) []string {
 	return strings.Split(os.Getenv(name), ",")
 }
