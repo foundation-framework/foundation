@@ -4,12 +4,12 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-var singleton = validator.New()
+var Singleton = validator.New()
 
 func Struct(value interface{}) error {
-	return singleton.Struct(value)
+	return Singleton.Struct(value)
 }
 
 func Var(field interface{}, tag string) error {
-	return singleton.Var(field, tag)
+	return Singleton.Var(field, tag)
 }
