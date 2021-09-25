@@ -13,7 +13,11 @@ type stopHandler struct {
 
 // NewStopHandler will create a Handler
 //
-// Any chained function return non-nil result will stop subsequent calls
+// Any chained function return non-nil result will
+// stop subsequent calls
+//
+// The return value is the first non-nil value returned
+// by chained functions
 func NewStopHandler(
 	ctx context.Context,
 	topic string,
@@ -63,6 +67,9 @@ type stopLastHandler struct {
 //
 // Any chained function return non-nil result will stop subsequent
 // calls and call the last function with that result
+//
+// The return value is the first non-nil value returned
+// by chained functions
 func NewStopLastHandler(
 	ctx context.Context,
 	topic string,
@@ -99,7 +106,7 @@ func (s *stopLastHandler) Serve(ctx context.Context, data interface{}) (string, 
 
 		lastIndex := len(s.fns) - 1
 		if i != lastIndex {
-			return s.fns[lastIndex](ctx, replyData)
+			s.fns[lastIndex](ctx, replyData)
 		}
 
 		return replyTopic, replyData
