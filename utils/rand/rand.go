@@ -2,6 +2,7 @@ package randutil
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 
@@ -44,10 +45,18 @@ func IntRange(r [2]int) int {
 }
 
 func Hex(size int) string {
+	return hex.EncodeToString(randomBytes(size))
+}
+
+func Base64(size int) string {
+	return base64.StdEncoding.EncodeToString(randomBytes(size))
+}
+
+func randomBytes(size int) []byte {
 	bytes := make([]byte, size)
 	if _, err := rand.Read(bytes); err != nil {
 		panic("randutil: error occurred while generating random data: " + err.Error())
 	}
 
-	return hex.EncodeToString(bytes)
+	return bytes
 }
