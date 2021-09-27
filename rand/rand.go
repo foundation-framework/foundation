@@ -1,4 +1,4 @@
-package randutil
+package rand
 
 import (
 	"crypto/rand"
@@ -32,12 +32,7 @@ func Int(min, max int) int {
 		panic("randutil: min is greater than max")
 	}
 
-	bytes := make([]byte, 4)
-	if _, err := rand.Read(bytes); err != nil {
-		panic("randutil: error occurred while generating random data: " + err.Error())
-	}
-
-	return int(binary.BigEndian.Uint32(bytes))%(max-min+1) + min
+	return int(binary.BigEndian.Uint32(randomBytes(4)))%(max-min+1) + min
 }
 
 func IntRange(r [2]int) int {

@@ -25,8 +25,8 @@ type websocketConn struct {
 	pingTicker  *time.Ticker
 	writerMutex sync.Mutex
 
-	readCounter  readCounter
-	writeCounter writeCounter
+	reader readCounter
+	writer writeCounter
 
 	msgHandlers   map[string]Handler
 	closeHandlers []func(err error)
@@ -82,7 +82,7 @@ func (c *websocketConn) Write(topic string, data interface{}) error {
 		return err
 	}
 
-	c.writeCounter.Reset(writer)
+	c.writer.Reset(writer)
 
 	if err := c.writeMessage(topic, data); err != nil {
 		// writeMessage can only return network errors that will be handled in readLoop
@@ -98,7 +98,7 @@ func (c *websocketConn) Write(topic string, data interface{}) error {
 }
 
 func (c *websocketConn) writeMessage(topic string, data interface{}) error {
-	c.encoder.ResetWriter(&c.writeCounter)
+	c.encoder.ResetWriter(&c.writer)
 
 	if err := c.encoder.WriteTopic(topic); err != nil {
 		return err
@@ -129,11 +129,11 @@ func (c *websocketConn) Close(context.Context) error {
 }
 
 func (c *websocketConn) BytesSent() uint64 {
-	return c.writeCounter.Count()
+	return c.writer.Count()
 }
 
 func (c *websocketConn) BytesReceived() uint64 {
-	return c.readCounter.Count()
+	return c.reader.Count()
 }
 
 func (c *websocketConn) HandleMsg(handlers ...Handler) {
@@ -183,14 +183,14 @@ func (c *websocketConn) readLoop() {
 		c.pingTicker.Reset(pingTimeout)
 
 		if messageType == websocket.BinaryMessage {
-			c.readCounter.ResetReader(reader)
+			c.reader.ResetReader(reader)
 			c.readMessage()
 		}
 	}
 }
 
 func (c *websocketConn) readMessage() {
-	c.encoder.ResetReader(&c.readCounter)
+	c.encoder.ResetReader(&c.reader)
 
 	topic, err := c.encoder.ReadTopic()
 	if err != nil {

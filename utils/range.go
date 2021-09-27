@@ -1,11 +1,13 @@
 package utils
 
-type Range struct {
-	left  int
-	right int
+import "github.com/intale-llc/foundation/rand"
+
+type IntRange struct {
+	Left  int
+	Right int
 }
 
-func NewRange(bounds [2]int) *Range {
+func NewIntRange(bounds [2]int) *IntRange {
 	var (
 		left  int
 		right int
@@ -19,16 +21,20 @@ func NewRange(bounds [2]int) *Range {
 		right = bounds[0]
 	}
 
-	return &Range{
-		left:  left,
-		right: right,
+	return &IntRange{
+		Left:  left,
+		Right: right,
 	}
 }
 
-func (r *Range) In(value int) bool {
-	return r.left < value && value < r.right
+func (r *IntRange) Rand() int {
+	return rand.Int(r.Left, r.Right)
 }
 
-func (r *Range) InWithBounds(value int) bool {
-	return r.left <= value && value <= r.right
+func (r *IntRange) In(value int) bool {
+	return r.Left < value && value < r.Right
+}
+
+func (r *IntRange) InWithBounds(value int) bool {
+	return r.Left <= value && value <= r.Right
 }

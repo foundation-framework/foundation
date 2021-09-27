@@ -3,7 +3,7 @@ package session
 import (
 	"github.com/Workiva/go-datastructures/set"
 	"github.com/intale-llc/foundation/net/sockets"
-	"github.com/intale-llc/foundation/utils/rand"
+	"github.com/intale-llc/foundation/rand"
 )
 
 type ClientPool struct {
@@ -20,7 +20,7 @@ func (p *ClientPool) NewClient(connection sockets.Conn) *Client {
 	return &Client{
 		Conn: connection,
 		pool: p,
-		id:   randutil.UUIDv4(),
+		id:   rand.UUIDv4(),
 		data: map[string]interface{}{},
 	}
 }

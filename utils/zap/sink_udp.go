@@ -11,6 +11,12 @@ const (
 	udpScheme = "udp"
 )
 
+func initUdpSink() {
+	if err := zap.RegisterSink(udpScheme, newUdpSink); err != nil {
+		panic("zaputil: unexpected error: " + err.Error())
+	}
+}
+
 type udpSink struct {
 	conn *net.UDPConn
 }
