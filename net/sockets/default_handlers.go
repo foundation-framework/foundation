@@ -5,7 +5,7 @@ import (
 )
 
 type stopHandler struct {
-	ctx   context.Context
+	ctxFn func() context.Context
 	topic string
 	model interface{}
 	fns   []HandlerFunc
@@ -19,13 +19,13 @@ type stopHandler struct {
 // The return value is the first non-nil value returned
 // by chained functions
 func NewStopHandler(
-	ctx context.Context,
+	ctxFn func() context.Context,
 	topic string,
 	model interface{},
 	fns ...HandlerFunc,
 ) Handler {
 	return &stopHandler{
-		ctx:   ctx,
+		ctxFn: ctxFn,
 		topic: topic,
 		model: model,
 		fns:   fns,
@@ -33,7 +33,7 @@ func NewStopHandler(
 }
 
 func (s *stopHandler) Context() context.Context {
-	return s.ctx
+	return s.ctxFn()
 }
 
 func (s *stopHandler) Topic() string {
@@ -57,7 +57,7 @@ func (s *stopHandler) Serve(ctx context.Context, data interface{}) (string, inte
 }
 
 type stopLastHandler struct {
-	ctx   context.Context
+	ctxFn func() context.Context
 	topic string
 	model interface{}
 	fns   []HandlerFunc
@@ -71,13 +71,13 @@ type stopLastHandler struct {
 // The return value is the first non-nil value returned
 // by chained functions
 func NewStopLastHandler(
-	ctx context.Context,
+	ctxFn func() context.Context,
 	topic string,
 	model interface{},
 	fns ...HandlerFunc,
 ) Handler {
 	return &stopLastHandler{
-		ctx:   ctx,
+		ctxFn: ctxFn,
 		topic: topic,
 		model: model,
 		fns:   fns,
@@ -85,7 +85,7 @@ func NewStopLastHandler(
 }
 
 func (s *stopLastHandler) Context() context.Context {
-	return s.ctx
+	return s.ctxFn()
 }
 
 func (s *stopLastHandler) Topic() string {
