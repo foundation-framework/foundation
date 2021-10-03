@@ -8,10 +8,6 @@ import (
 	"github.com/intale-llc/foundation/net/sockets"
 )
 
-type Data interface {
-	ID() string
-}
-
 type Client struct {
 	sockets.Conn
 

@@ -2,12 +2,12 @@ package utils
 
 import "github.com/intale-llc/foundation/rand"
 
-type IntRange struct {
+type Range struct {
 	Left  int
 	Right int
 }
 
-func NewIntRange(bounds [2]int) *IntRange {
+func NewRange(bounds [2]int) *Range {
 	var (
 		left  int
 		right int
@@ -21,20 +21,20 @@ func NewIntRange(bounds [2]int) *IntRange {
 		right = bounds[0]
 	}
 
-	return &IntRange{
+	return &Range{
 		Left:  left,
 		Right: right,
 	}
 }
 
-func (r *IntRange) Rand() int {
+func (r *Range) Rand() int {
 	return rand.Int(r.Left, r.Right)
 }
 
-func (r *IntRange) In(value int) bool {
+func (r *Range) In(value int) bool {
 	return r.Left < value && value < r.Right
 }
 
-func (r *IntRange) InWithBounds(value int) bool {
+func (r *Range) InBounds(value int) bool {
 	return r.Left <= value && value <= r.Right
 }

@@ -2,7 +2,7 @@ package utils
 
 import "reflect"
 
-func InSlice(slice interface{}, value interface{}) bool {
+func In(slice interface{}, value interface{}) bool {
 	sliceReflect := reflect.ValueOf(slice)
 
 	if sliceReflect.Type().Kind() != reflect.Slice {
@@ -18,7 +18,7 @@ func InSlice(slice interface{}, value interface{}) bool {
 	return false
 }
 
-func InSliceAll(slice interface{}, values ...interface{}) bool {
+func All(slice interface{}, values ...interface{}) bool {
 	sliceReflect := reflect.ValueOf(slice)
 
 	if sliceReflect.Type().Kind() != reflect.Slice {
@@ -39,7 +39,7 @@ func InSliceAll(slice interface{}, values ...interface{}) bool {
 	return true
 }
 
-func InSliceAny(slice interface{}, values ...interface{}) bool {
+func Any(slice interface{}, values ...interface{}) bool {
 	sliceReflect := reflect.ValueOf(slice)
 
 	if sliceReflect.Type().Kind() != reflect.Slice {
