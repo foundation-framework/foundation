@@ -22,3 +22,12 @@ func UnpackLogger(ctx context.Context) *zap.Logger {
 
 	return logger
 }
+
+func UnpackLoggerNop(ctx context.Context) *zap.Logger {
+	logger, ok := ctx.Value(ContextLoggerKey).(*zap.Logger)
+	if !ok {
+		return zap.NewNop()
+	}
+
+	return logger
+}
