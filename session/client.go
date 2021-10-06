@@ -37,6 +37,13 @@ func (c *Client) SetData(key string, data interface{}) {
 	c.data[key] = data
 }
 
+func (c *Client) DropData(key string) {
+	c.rmux.Lock()
+	defer c.rmux.Unlock()
+
+	delete(c.data, key)
+}
+
 func (c *Client) Check(fns ...func(c *Client) bool) bool {
 	c.rmux.RLock()
 	defer c.rmux.RUnlock()
