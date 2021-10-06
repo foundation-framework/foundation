@@ -35,7 +35,7 @@ func Int(min, max int) int {
 	return int(binary.BigEndian.Uint32(randomBytes(4)))%(max-min+1) + min
 }
 
-func IntRange(r [2]int) int {
+func IntBounds(r [2]int) int {
 	return Int(r[0], r[1])
 }
 
