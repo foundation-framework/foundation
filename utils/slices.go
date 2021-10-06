@@ -3,8 +3,11 @@ package utils
 import "reflect"
 
 func In(slice interface{}, value interface{}) bool {
-	sliceReflect := reflect.ValueOf(slice)
+	if slice == nil {
+		return false
+	}
 
+	sliceReflect := reflect.ValueOf(slice)
 	if sliceReflect.Type().Kind() != reflect.Slice {
 		return false
 	}
@@ -19,8 +22,11 @@ func In(slice interface{}, value interface{}) bool {
 }
 
 func All(slice interface{}, values ...interface{}) bool {
-	sliceReflect := reflect.ValueOf(slice)
+	if slice == nil {
+		return false
+	}
 
+	sliceReflect := reflect.ValueOf(slice)
 	if sliceReflect.Type().Kind() != reflect.Slice {
 		return false
 	}
@@ -40,8 +46,11 @@ func All(slice interface{}, values ...interface{}) bool {
 }
 
 func Any(slice interface{}, values ...interface{}) bool {
-	sliceReflect := reflect.ValueOf(slice)
+	if slice == nil {
+		return false
+	}
 
+	sliceReflect := reflect.ValueOf(slice)
 	if sliceReflect.Type().Kind() != reflect.Slice {
 		return false
 	}
