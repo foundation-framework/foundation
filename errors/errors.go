@@ -27,6 +27,10 @@ func New(msg string) error {
 	return &stringError{msg: msg}
 }
 
+func Newf(format string, v ...interface{}) error {
+	return &stringError{msg: fmt.Sprintf(format, v...)}
+}
+
 func (e *stringError) Error() string {
 	return e.msg
 }
