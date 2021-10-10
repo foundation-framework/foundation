@@ -33,6 +33,15 @@ func (r *Range) InBounds(value int) bool {
 	return r.Min <= value && value <= r.Max
 }
 
+func (r *Range) Slice() []int {
+	result := make([]int, 0, r.Max-r.Min+1)
+	for i := r.Min; i <= r.Max; i++ {
+		result = append(result, i)
+	}
+
+	return result
+}
+
 func (r *Range) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var bounds [2]int
 

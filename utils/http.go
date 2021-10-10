@@ -1,4 +1,4 @@
-package httputils
+package utils
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-func ServeRequest(addr, path string, fn http.HandlerFunc) error {
+func ServeHttpRequest(addr, path string, fn http.HandlerFunc) error {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 

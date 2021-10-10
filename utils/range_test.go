@@ -62,6 +62,19 @@ func TestRange_InBounds(t *testing.T) {
 	assert.True(t, rng1.InBounds(100))
 }
 
+func TestRange_Slice(t *testing.T) {
+	rng := NewRange(100, 200)
+
+	slice := rng.Slice()
+	require.Len(t, slice, 101)
+
+	counter := 100
+	for _, elem := range slice {
+		require.Equal(t, elem, counter)
+		counter++
+	}
+}
+
 func TestRange_Rand(t *testing.T) {
 	rng := NewRange(100, 105)
 

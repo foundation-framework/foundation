@@ -1,4 +1,4 @@
-package zaputil
+package zapext
 
 import (
 	"net"
