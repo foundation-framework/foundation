@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/Workiva/go-datastructures/set"
 	"github.com/intale-llc/foundation/net/sockets"
 )
 
@@ -12,7 +11,7 @@ type Client struct {
 	sockets.Conn
 
 	pool  *ClientPool
-	rooms *set.Set
+	rooms map[string]struct{}
 
 	id   string
 	data map[string]interface{}
@@ -58,29 +57,27 @@ func (c *Client) Check(fns ...func(c *Client) bool) bool {
 }
 
 func (c *Client) Join(room string) {
-	c.pool.join(c, room)
-	c.rooms.Add(room)
-}
-
-func (c *Client) Leave(room string) {
-	c.pool.leave(c, room)
-	c.rooms.Remove(room)
-}
-
-func (c *Client) LeaveAll() {
-	rooms := c.rooms.Flatten()
-	c.rooms.Clear()
-
-	for _, room := range rooms {
-		c.pool.leave(c, room.(string))
+	if c.pool.join(c, room) {
+		c.rooms[room] = struct{}{}
 	}
 }
 
+func (c *Client) Leave(room string) {
+	if c.pool.leave(c, room) {
+		delete(c.rooms, room)
+	}
+}
+
+func (c *Client) LeaveAll() {
+	for room := range c.rooms {
+		c.pool.leave(c, room)
+	}
+
+	c.rooms = map[string]struct{}{}
+}
+
 func (c *Client) Broadcast(room string, topic string, data interface{}) {
-	c.pool.iterateRoom(room, func(client *Client) {
-		// Ignore any errors
-		_ = client.Write(topic, data)
-	})
+	c.pool.Broadcast(c, room, topic, data)
 }
 
 func (c *Client) Context() context.Context {

@@ -1,13 +1,13 @@
-package sockets
+package websocket
 
 import "io"
 
-type writeCounter struct {
+type writerCounter struct {
 	writer io.Writer
 	count  uint64
 }
 
-func (w *writeCounter) Write(data []byte) (int, error) {
+func (w *writerCounter) Write(data []byte) (int, error) {
 	n, err := w.writer.Write(data)
 	if err != nil {
 		return 0, err
@@ -17,20 +17,20 @@ func (w *writeCounter) Write(data []byte) (int, error) {
 	return n, nil
 }
 
-func (w *writeCounter) Reset(writer io.Writer) {
+func (w *writerCounter) Reset(writer io.Writer) {
 	w.writer = writer
 }
 
-func (w *writeCounter) Count() uint64 {
+func (w *writerCounter) Count() uint64 {
 	return w.count
 }
 
-type readCounter struct {
+type readerCounter struct {
 	reader io.Reader
 	count  uint64
 }
 
-func (w *readCounter) Read(data []byte) (int, error) {
+func (w *readerCounter) Read(data []byte) (int, error) {
 	n, err := w.reader.Read(data)
 	if err != nil {
 		return 0, err
@@ -40,10 +40,10 @@ func (w *readCounter) Read(data []byte) (int, error) {
 	return n, nil
 }
 
-func (w *readCounter) ResetReader(reader io.Reader) {
+func (w *readerCounter) ResetReader(reader io.Reader) {
 	w.reader = reader
 }
 
-func (w *readCounter) Count() uint64 {
+func (w *readerCounter) Count() uint64 {
 	return w.count
 }

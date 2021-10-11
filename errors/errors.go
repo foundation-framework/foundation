@@ -19,19 +19,19 @@ func Unwrap(err error) error {
 	return stderrors.Unwrap(err)
 }
 
-type stringError struct {
+type baseError struct {
 	msg string
 }
 
 func New(msg string) error {
-	return &stringError{msg: msg}
+	return &baseError{msg: msg}
 }
 
 func Newf(format string, v ...interface{}) error {
-	return &stringError{msg: fmt.Sprintf(format, v...)}
+	return &baseError{msg: fmt.Sprintf(format, v...)}
 }
 
-func (e *stringError) Error() string {
+func (e *baseError) Error() string {
 	return e.msg
 }
 

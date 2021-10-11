@@ -1,10 +1,11 @@
-package sockets
+package websocket
 
 import (
 	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/intale-llc/foundation/net/sockets"
 	"github.com/intale-llc/foundation/units"
 )
 
@@ -19,29 +20,29 @@ var DefaultUpgrader = &Upgrader{
 	// Other settings are nil & false
 }
 
-type websocketServer struct {
+type server struct {
 	upgrader *Upgrader
 
-	connHandlers  []func(Conn)
+	connHandlers  []func(sockets.Conn)
 	errorHandlers []func(error)
 	closeHandlers []func(error)
 }
 
-// NewWebsocketServer creates new Server based on Websocket protocol
+// NewServer creates new Server based on Websocket protocol
 //
 // Listen method accepts path to handle incoming connections
 // (path is used to create handler for restListener)
-func NewWebsocketServer(upgrader *Upgrader) Server {
-	return &websocketServer{
+func NewServer(upgrader *Upgrader) sockets.Server {
+	return &server{
 		upgrader: upgrader,
 
-		connHandlers:  []func(Conn){},
+		connHandlers:  []func(sockets.Conn){},
 		errorHandlers: []func(error){},
 		closeHandlers: []func(error){},
 	}
 }
 
-func (l *websocketServer) Handler() http.Handler {
+func (l *server) Handler() http.Handler {
 	var upgrader = (*websocket.Upgrader)(l.upgrader)
 
 	// Use DefaultUpgrader if nil
@@ -56,35 +57,35 @@ func (l *websocketServer) Handler() http.Handler {
 			return
 		}
 
-		l.callConnHandlers(newWebsocketConn(conn, l))
+		l.callConnHandlers(newConn(conn, l))
 	})
 }
 
-func (l *websocketServer) HandleConn(fun func(conn Conn)) {
+func (l *server) HandleConn(fun func(conn sockets.Conn)) {
 	l.connHandlers = append(l.connHandlers, fun)
 }
 
-func (l *websocketServer) callConnHandlers(conn Conn) {
+func (l *server) callConnHandlers(conn sockets.Conn) {
 	for _, fun := range l.connHandlers {
 		fun(conn)
 	}
 }
 
-func (l *websocketServer) HandleError(fun func(err error)) {
+func (l *server) HandleError(fun func(err error)) {
 	l.errorHandlers = append(l.errorHandlers, fun)
 }
 
-func (l *websocketServer) callErrorHandlers(err error) {
+func (l *server) callErrorHandlers(err error) {
 	for _, fun := range l.errorHandlers {
 		fun(err)
 	}
 }
 
-func (l *websocketServer) HandleClose(fun func(err error)) {
+func (l *server) HandleClose(fun func(err error)) {
 	l.closeHandlers = append(l.closeHandlers, fun)
 }
 
-func (l *websocketServer) callCloseHandlers(err error) {
+func (l *server) callCloseHandlers(err error) {
 	for _, fun := range l.closeHandlers {
 		fun(err)
 	}
