@@ -15,16 +15,13 @@ type Mail interface {
 
 	// Body returns mail body
 	Body() []byte
-
-	// Senders returns all possible senders to send mail
-	Senders() []Sender
 }
 
-func Send(mail Mail, to string) error {
+func Send(address string, mail Mail, sender Sender) error {
 	buffer := bytes.NewBuffer(nil)
 
 	// Writing mail headers
-	if err := defaultHeaders(mail.Subject(), to).Write(buffer); err != nil {
+	if err := defaultHeaders(mail.Subject(), address).Write(buffer); err != nil {
 		return err
 	}
 
@@ -33,19 +30,8 @@ func Send(mail Mail, to string) error {
 		return err
 	}
 
-	var sendErr error
-
-	// Trying to send on all resources
-	senders := mail.Senders()
-	for _, sender := range senders {
-		sendErr = sender.SendMail(buffer.Bytes())
-
-		if sendErr == nil {
-			break
-		}
-	}
-
-	return sendErr
+	// Sending
+	return sender.SendMail(buffer.Bytes())
 }
 
 func defaultHeaders(subject, to string) http.Header {
