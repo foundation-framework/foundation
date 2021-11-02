@@ -23,7 +23,7 @@ func Bytes(size int) []byte {
 }
 
 func UUID() string {
-	u, err := uuid.FromBytes(Bytes(SizeUUID))
+	u, err := uuid.NewRandom()
 	if err != nil {
 		panic("rand: unexpected uuid error: " + err.Error())
 	}
