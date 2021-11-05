@@ -1,4 +1,4 @@
-package websocket
+package websockets
 
 import (
 	"net/http"
@@ -27,7 +27,7 @@ type server struct {
 	errorCb func(error)
 }
 
-// NewServer creates new Server based on WebSocket protocol
+// NewServer creates new Server based on WebSockets protocol
 //
 // Listen method accepts path to handle incoming connections
 // (path is used to create handler for restListener)

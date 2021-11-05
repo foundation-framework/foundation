@@ -1,4 +1,4 @@
-package websocket
+package websockets
 
 import (
 	"context"
@@ -207,7 +207,7 @@ func (c *conn) panicCatcher(topic string, data interface{}) {
 		return
 	}
 
-	log.Printf("websocket: panic on '%s' handler: %s\n%s", topic, msg, string(debug.Stack()))
+	log.Printf("websockets: panic on '%s' handler: %s\n%s", topic, msg, string(debug.Stack()))
 }
 
 func (c *conn) Write(topic string, data interface{}, handler ...sockets.Handler) error {
