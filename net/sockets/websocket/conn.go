@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"runtime/debug"
@@ -10,7 +9,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/intale-llc/foundation/errors"
 	"github.com/intale-llc/foundation/net/sockets"
+	"github.com/intale-llc/foundation/rand"
 )
 
 var (
@@ -19,51 +20,55 @@ var (
 )
 
 type conn struct {
-	inner    *websocket.Conn
-	listener *server
-	encoder  sockets.Encoder
+	inner  *websocket.Conn
+	server *server
 
-	pingTicker  *time.Ticker
+	pingTicker *time.Ticker
+
+	encoder      sockets.Encoder
+	encoderMutex sync.Mutex
+
+	reader      readerCounter
+	readerMutex sync.Mutex
+
+	writer      writerCounter
 	writerMutex sync.Mutex
 
-	reader readerCounter
-	writer writerCounter
+	closeCb func(err error)
+	errorCb func(err error)
+	fatalCb func(topic string, data interface{}, msg interface{})
 
-	msgHandlers   map[string]sockets.Handler
-	closeHandlers []func(err error)
-	errorHandlers []func(err error)
-	fatalHandler  func(topic string, data interface{}, msg interface{})
+	messageHandlers map[string]sockets.Handler
+	replyHandlers   map[string]sockets.Handler
+	handlersMutex   sync.Mutex
 }
 
-func newConn(inner *websocket.Conn, listener *server) sockets.Conn {
+func newConn(inner *websocket.Conn, server *server) sockets.Conn {
 	result := &conn{
-		inner:    inner,
-		listener: listener,
-		encoder:  sockets.NewMsgpackEncoder(),
+		inner:   inner,
+		server:  server,
+		encoder: sockets.NewMsgpackEncoder(),
 
 		pingTicker: time.NewTicker(pingTimeout),
 
-		msgHandlers:   map[string]sockets.Handler{},
-		closeHandlers: []func(err error){},
-		errorHandlers: []func(err error){},
-		// onFatal must be nil to print default messages to terminal
+		closeCb: func(err error) {},
+		errorCb: func(err error) {},
+		// fatalCb must be nil to print default messages to terminal
+		messageHandlers: map[string]sockets.Handler{},
+		replyHandlers:   map[string]sockets.Handler{},
 	}
 
 	go func() {
 		// Read loop reads and decodes any data in connection
-		result.readLoop()
+		result.readMessageLoop()
 	}()
 
 	go func() {
 		// Ping loop keeps the connection alive
-		result.pingLoop()
+		result.readPingLoop()
 	}()
 
 	return result
-}
-
-func (c *conn) SetEncoder(encoder sockets.Encoder) {
-	c.encoder = encoder
 }
 
 func (c *conn) LocalAddr() net.Addr {
@@ -74,104 +79,39 @@ func (c *conn) RemoteAddr() net.Addr {
 	return c.inner.RemoteAddr()
 }
 
-func (c *conn) Write(topic string, data interface{}) error {
-	c.writerMutex.Lock()
-	defer c.writerMutex.Unlock()
-
-	writer, err := c.inner.NextWriter(websocket.BinaryMessage)
-	if err != nil {
-		return err
-	}
-
-	c.writer.Reset(writer)
-
-	if err := c.writeMessage(topic, data); err != nil {
-		// writeMessage can only return network errors that will be handled in readLoop
-		c.callErrorHandlers(err)
-	}
-
-	if err := writer.Close(); err != nil {
-		// Not critical error (any critical errors we handle inside read loop)
-		c.callErrorHandlers(err)
-	}
-
-	return nil
-}
-
-func (c *conn) writeMessage(topic string, data interface{}) error {
-	c.encoder.ResetWriter(&c.writer)
-
-	if err := c.encoder.WriteTopic(topic); err != nil {
-		return err
-	}
-	if err := c.encoder.WriteData(data); err != nil {
-		return err
-	}
-	if err := c.encoder.Flush(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (c *conn) writePing() error {
-	c.writerMutex.Lock()
-	defer c.writerMutex.Unlock()
-
-	return c.inner.WriteMessage(websocket.PingMessage, nil)
-}
-
-func (c *conn) Close(context.Context) error {
-	if err := c.inner.Close(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (c *conn) BytesSent() uint64 {
+	c.writerMutex.Lock()
+	defer c.writerMutex.Unlock()
+
 	return c.writer.Count()
 }
 
 func (c *conn) BytesReceived() uint64 {
+	c.readerMutex.Lock()
+	defer c.readerMutex.Unlock()
+
 	return c.reader.Count()
 }
 
-func (c *conn) HandleMsg(handlers ...sockets.Handler) {
-	for _, handler := range handlers {
-		c.msgHandlers[handler.Topic()] = handler
-	}
+func (c *conn) SetEncoder(encoder sockets.Encoder) {
+	c.encoderMutex.Lock()
+	defer c.encoderMutex.Unlock()
+
+	c.encoder = encoder
 }
 
-func (c *conn) HandleClose(fun func(err error)) {
-	c.closeHandlers = append(c.closeHandlers, fun)
+func (c *conn) getEncoder() sockets.Encoder {
+	c.encoderMutex.Lock()
+	defer c.encoderMutex.Unlock()
+
+	return c.encoder
 }
 
-func (c *conn) callCloseHandlers(err error) {
-	for _, fun := range c.closeHandlers {
-		fun(err)
-	}
-}
-
-func (c *conn) HandleError(fun func(err error)) {
-	c.errorHandlers = append(c.errorHandlers, fun)
-}
-
-func (c *conn) callErrorHandlers(err error) {
-	for _, fun := range c.errorHandlers {
-		fun(err)
-	}
-}
-
-func (c *conn) HandleFatal(fun func(topic string, data interface{}, msg interface{})) {
-	c.fatalHandler = fun
-}
-
-func (c *conn) readLoop() {
+func (c *conn) readMessageLoop() {
 	for {
 		messageType, reader, err := c.inner.NextReader()
 		if err != nil {
-			c.callCloseHandlers(err)
+			c.closeCb(err)
 
 			// We MUST explicitly close connection
 			// Without this close, a connection file descriptor is sometimes leaked
@@ -190,60 +130,7 @@ func (c *conn) readLoop() {
 	}
 }
 
-func (c *conn) readMessage() {
-	c.encoder.ResetReader(&c.reader)
-
-	topic, err := c.encoder.ReadTopic()
-	if err != nil {
-		c.callErrorHandlers(err)
-		return
-	}
-
-	handler := c.msgHandlers[topic]
-	if handler == nil {
-		c.callErrorHandlers(fmt.Errorf("no handler found for \"%s\" topic", topic))
-		return
-	}
-
-	data := handler.Model()
-	if err := c.encoder.ReadData(data); err != nil {
-		c.callErrorHandlers(err)
-		return
-	}
-
-	go func() {
-		defer c.panicCatcher(topic, data)
-		replyTopic, replyData := handler.Serve(handler.Context(), data)
-
-		if replyData == nil {
-			return
-		}
-
-		if replyTopic == "" {
-			replyTopic = topic
-		}
-
-		if err := c.Write(topic, replyData); err != nil {
-			c.callErrorHandlers(err)
-		}
-	}()
-}
-
-func (c *conn) panicCatcher(topic string, data interface{}) {
-	msg := recover()
-	if msg == nil {
-		return
-	}
-
-	if c.fatalHandler != nil {
-		c.fatalHandler(topic, data, msg)
-		return
-	}
-
-	log.Printf("websocket: panic on '%s' handler: %s\n%s", topic, msg, string(debug.Stack()))
-}
-
-func (c *conn) pingLoop() {
+func (c *conn) readPingLoop() {
 	c.inner.SetPongHandler(func(string) error {
 		return c.inner.SetReadDeadline(time.Time{})
 	})
@@ -262,6 +149,190 @@ func (c *conn) pingLoop() {
 			return
 		}
 	}
+}
+
+func (c *conn) readMessage() {
+	c.readerMutex.Lock()
+	defer c.readerMutex.Unlock()
+
+	encoder := c.getEncoder()
+	encoder.ResetReader(&c.reader)
+
+	id, err := encoder.ReadString()
+	if err != nil {
+		c.errorCb(err)
+		return
+	}
+
+	topic, err := encoder.ReadString()
+	if err != nil {
+		c.errorCb(err)
+		return
+	}
+
+	handler := c.findHandler(id, topic)
+	if handler == nil {
+		c.errorCb(errors.Newf("no handler found for \"%s\" topic", topic))
+		return
+	}
+
+	data := handler.Model()
+	if err := encoder.ReadData(data); err != nil {
+		c.errorCb(err)
+		return
+	}
+
+	go func() {
+		defer c.panicCatcher(topic, data)
+		replyData := handler.Serve(handler.Context(), data)
+
+		if replyData == nil {
+			return
+		}
+
+		if err := c.writeMessage(id, topic, replyData); err != nil {
+			c.errorCb(err)
+		}
+	}()
+}
+
+func (c *conn) panicCatcher(topic string, data interface{}) {
+	msg := recover()
+	if msg == nil {
+		return
+	}
+
+	if c.fatalCb != nil {
+		c.fatalCb(topic, data, msg)
+		return
+	}
+
+	log.Printf("websocket: panic on '%s' handler: %s\n%s", topic, msg, string(debug.Stack()))
+}
+
+func (c *conn) Write(topic string, data interface{}, handler ...sockets.Handler) error {
+	if len(handler) > 1 {
+		return errors.New("more than one reply handler passed")
+	}
+
+	id := rand.UUID()
+	if err := c.writeMessage(id, topic, data); err != nil {
+		return err
+	}
+
+	if len(handler) > 0 && handler[0] != nil {
+		c.setReplyHandler(id, handler[0])
+	}
+
+	return nil
+}
+
+func (c *conn) writeMessage(id, topic string, data interface{}) error {
+	c.writerMutex.Lock()
+	defer c.writerMutex.Unlock()
+
+	writer, err := c.inner.NextWriter(websocket.BinaryMessage)
+	if err != nil {
+		return err
+	}
+
+	c.writer.Reset(writer)
+
+	if err := c.encodeMessage(id, topic, data); err != nil {
+		// encodeMessage can only return network errors that will be handled in readMessageLoop
+		return err
+	}
+
+	if err := writer.Close(); err != nil {
+		// Not a critical error (any critical errors we handle inside read loop)
+		return err
+	}
+
+	return nil
+}
+
+func (c *conn) encodeMessage(id, topic string, data interface{}) error {
+	encoder := c.getEncoder()
+	encoder.ResetWriter(&c.writer)
+
+	return errors.First(
+		encoder.WriteString(id),
+		encoder.WriteString(topic),
+		encoder.WriteData(data),
+		encoder.Flush(),
+	)
+}
+
+func (c *conn) writePing() error {
+	c.writerMutex.Lock()
+	defer c.writerMutex.Unlock()
+
+	return c.inner.WriteMessage(websocket.PingMessage, nil)
+}
+
+func (c *conn) SetMessageHandlers(handlers ...sockets.Handler) {
+	c.handlersMutex.Lock()
+	defer c.handlersMutex.Unlock()
+
+	for _, handler := range handlers {
+		if !isPointer(handler.Model()) {
+			errors.Panicf("\"%s\" handler: model must be a pointer", handler.Topic())
+		}
+
+		c.messageHandlers[handler.Topic()] = handler
+	}
+}
+
+func (c *conn) RemoveMessageHandlers(handlers ...sockets.Handler) {
+	c.handlersMutex.Lock()
+	defer c.handlersMutex.Unlock()
+
+	for _, handler := range handlers {
+		delete(c.messageHandlers, handler.Topic())
+	}
+}
+
+func (c *conn) setReplyHandler(id string, handler sockets.Handler) {
+	c.handlersMutex.Lock()
+	defer c.handlersMutex.Unlock()
+
+	c.replyHandlers[id] = handler
+}
+
+func (c *conn) findHandler(id, topic string) sockets.Handler {
+	c.handlersMutex.Lock()
+	defer c.handlersMutex.Unlock()
+
+	handler := c.replyHandlers[id]
+
+	if handler == nil {
+		handler = c.messageHandlers[topic]
+	} else {
+		// Automatically remove reply handler
+		delete(c.replyHandlers, id)
+	}
+
+	return handler
+}
+
+func (c *conn) OnError(fn func(err error)) {
+	c.errorCb = fn
+}
+
+func (c *conn) OnFatal(fn func(topic string, data interface{}, panicMsg interface{})) {
+	c.fatalCb = fn
+}
+
+func (c *conn) OnClose(fn func(err error)) {
+	c.closeCb = fn
+}
+
+func (c *conn) Close(context.Context) error {
+	if err := c.inner.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func Dial(addr string) (sockets.Conn, error) {

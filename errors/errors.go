@@ -84,3 +84,17 @@ func (e *wrapError) Format(s fmt.State, verb rune) {
 		io.WriteString(s, e.Error())
 	}
 }
+
+func First(errs ...error) error {
+	for _, err := range errs {
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func Panicf(msg string, v ...interface{}) {
+	panic(fmt.Sprintf(msg, v...))
+}
