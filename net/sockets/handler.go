@@ -19,8 +19,9 @@ type Handler interface {
 
 	// Serve used to serve message
 	// Any data returned by this method will be sent back
-	Serve(ctx context.Context, data interface{}) (string, interface{})
+	// and trigger ReplyHandler
+	Serve(ctx context.Context, data interface{}) interface{}
 }
 
-// HandlerFunc represents Handler calling function
-type HandlerFunc func(ctx context.Context, data interface{}) (string, interface{})
+// HandlerFunc represents Handler.Serve function
+type HandlerFunc func(ctx context.Context, data interface{}) interface{}

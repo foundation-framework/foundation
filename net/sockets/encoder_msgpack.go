@@ -31,7 +31,7 @@ func (e *msgpackEncoder) Flush() error {
 	return e.writer.Flush()
 }
 
-func (e *msgpackEncoder) ReadTopic() (string, error) {
+func (e *msgpackEncoder) ReadString() (string, error) {
 	return e.reader.ReadString()
 }
 
@@ -49,7 +49,7 @@ func (e *msgpackEncoder) ReadData(data interface{}) error {
 	return nil
 }
 
-func (e *msgpackEncoder) WriteTopic(topic string) error {
+func (e *msgpackEncoder) WriteString(topic string) error {
 	// No encoding errors can be here
 	return e.writer.WriteString(topic)
 }

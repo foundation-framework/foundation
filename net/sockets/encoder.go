@@ -13,11 +13,11 @@ type Encoder interface {
 	// Flush enforces encoder to flush all buffered data
 	Flush() error
 
-	// ReadTopic reads message topic from underlying reader
+	// ReadString reads a string from an underlying reader
 	// Any encoding errors must be returned
 	//
 	// See Handler for more info about messaging system
-	ReadTopic() (string, error)
+	ReadString() (string, error)
 
 	// ReadData reads message data from underlying reader
 	// Any encoding returned by this method
@@ -25,11 +25,11 @@ type Encoder interface {
 	// See Handler for more info about messaging system
 	ReadData(data interface{}) error
 
-	// WriteTopic writes message topic to underlying writer
+	// WriteString writes a string to an underlying writer
 	// Method will panic on any encoding errors
 	//
 	// See Handler for more info about messaging system
-	WriteTopic(topic string) error
+	WriteString(content string) error
 
 	// WriteData writes message data to underlying writer
 	// Method will panic on any encoding errors
