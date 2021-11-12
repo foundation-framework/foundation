@@ -44,7 +44,7 @@ func (h *simpleHandler) Serve(ctx context.Context, data interface{}) interface{}
 
 type simpleReplyHandler struct {
 	model interface{}
-	fn    HandlerFunc
+	fn    ReplyHandlerFunc
 }
 
 // NewSimpleReplyHandler creates simple Handler for handle message reply
@@ -53,7 +53,7 @@ type simpleReplyHandler struct {
 // has only one chained function
 func NewSimpleReplyHandler(
 	model interface{},
-	fn HandlerFunc,
+	fn ReplyHandlerFunc,
 ) Handler {
 	return &simpleReplyHandler{
 		model: model,

@@ -186,7 +186,7 @@ func (c *conn) readMessage() {
 		defer c.panicCatcher(topic, data)
 		replyData := handler.Serve(handler.Context(), data)
 
-		if replyData == nil {
+		if isReplyHandler(handler) || replyData == nil {
 			return
 		}
 
@@ -215,13 +215,22 @@ func (c *conn) Write(topic string, data interface{}, handler ...sockets.Handler)
 		return errors.New("more than one reply handler passed")
 	}
 
+	var replyHandler sockets.Handler
+	if len(handler) > 0 && handler[0] != nil {
+		replyHandler = handler[0]
+	}
+
+	if replyHandler != nil && !isReplyHandler(replyHandler) {
+		return errors.New("reply handler must have empty topic")
+	}
+
 	id := rand.UUID()
 	if err := c.writeMessage(id, topic, data); err != nil {
 		return err
 	}
 
-	if len(handler) > 0 && handler[0] != nil {
-		c.setReplyHandler(id, handler[0])
+	if replyHandler != nil {
+		c.setReplyHandler(id, replyHandler)
 	}
 
 	return nil
@@ -277,6 +286,10 @@ func (c *conn) SetMessageHandlers(handlers ...sockets.Handler) {
 	for _, handler := range handlers {
 		if !isPointer(handler.Model()) {
 			errors.Panicf("\"%s\" handler: model must be a pointer", handler.Topic())
+		}
+
+		if isReplyHandler(handler) {
+			errors.Panicf("reply handler cannot be used as message handler")
 		}
 
 		c.messageHandlers[handler.Topic()] = handler
@@ -342,4 +355,8 @@ func Dial(addr string) (sockets.Conn, error) {
 	}
 
 	return newConn(conn, nil), err
+}
+
+func isReplyHandler(handler sockets.Handler) bool {
+	return handler.Topic() == ""
 }

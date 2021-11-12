@@ -11,6 +11,8 @@ type Handler interface {
 	//
 	// Any topic format can be used, make sure it is consistent
 	// with the other side of connection
+	//
+	// IMPORTANT!!! Reply handlers must have empty topic
 	Topic() string
 
 	// Model returns model used to decode messages with provided Topic
@@ -23,5 +25,8 @@ type Handler interface {
 	Serve(ctx context.Context, data interface{}) interface{}
 }
 
-// HandlerFunc represents Handler.Serve function
+// HandlerFunc represents serving function for standard message handler
 type HandlerFunc func(ctx context.Context, data interface{}) interface{}
+
+// ReplyHandlerFunc represents serving function for reply handler
+type ReplyHandlerFunc func(ctx context.Context, data interface{})

@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 
 	"github.com/google/uuid"
+	"github.com/intale-llc/foundation/errors"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 func Bytes(size int) []byte {
 	bytes := make([]byte, size)
 	if _, err := rand.Read(bytes); err != nil {
-		panic("rand: unexpected generation error: " + err.Error())
+		errors.Panicf("rand: unexpected generation error: %s", err)
 	}
 
 	return bytes
@@ -25,7 +26,7 @@ func Bytes(size int) []byte {
 func UUID() string {
 	u, err := uuid.NewRandom()
 	if err != nil {
-		panic("rand: unexpected uuid error: " + err.Error())
+		errors.Panicf("rand: unexpected uuid error: %s", err)
 	}
 
 	return u.String()
