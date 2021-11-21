@@ -85,10 +85,10 @@ func (e *wrapError) Format(s fmt.State, verb rune) {
 	}
 }
 
-func First(errs ...error) error {
-	for _, err := range errs {
-		if err != nil {
-			return err
+func First(fns ...func() error) error {
+	for _, fn := range fns {
+		if err := fn(); err != nil {
+			return fn()
 		}
 	}
 

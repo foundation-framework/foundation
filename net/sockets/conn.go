@@ -51,7 +51,7 @@ type Conn interface {
 
 	// OnClose sets callback for connection closure
 	//
-	// Only one callback allowed, next calls will replace callback
+	// Multiple callback allowed
 	OnClose(func(err error))
 
 	// Close closes the connection

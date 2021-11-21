@@ -34,7 +34,7 @@ type conn struct {
 	writer      writerCounter
 	writerMutex sync.Mutex
 
-	closeCb func(err error)
+	closeCb []func(err error)
 	errorCb func(err error)
 	fatalCb func(topic string, data interface{}, msg interface{})
 
@@ -51,7 +51,7 @@ func newConn(inner *websocket.Conn, server *server) sockets.Conn {
 
 		pingTicker: time.NewTicker(pingTimeout),
 
-		closeCb: func(err error) {},
+		closeCb: []func(err error){},
 		errorCb: func(err error) {},
 		// fatalCb must be nil to print default messages to terminal
 		messageHandlers: map[string]sockets.Handler{},
@@ -111,7 +111,7 @@ func (c *conn) readMessageLoop() {
 	for {
 		messageType, reader, err := c.inner.NextReader()
 		if err != nil {
-			c.closeCb(err)
+			c.callCloseCb(err)
 
 			// We MUST explicitly close connection
 			// Without this close, a connection file descriptor is sometimes leaked
@@ -207,7 +207,7 @@ func (c *conn) panicCatcher(topic string, data interface{}) {
 		return
 	}
 
-	log.Printf("websockets: panic on '%s' handler: %s\n%s", topic, msg, string(debug.Stack()))
+	log.Printf("websockets: panic on \"%s\" handler: %s\n%s", topic, msg, string(debug.Stack()))
 }
 
 func (c *conn) Write(topic string, data interface{}, handler ...sockets.Handler) error {
@@ -264,12 +264,17 @@ func (c *conn) encodeMessage(id, topic string, data interface{}) error {
 	encoder := c.getEncoder()
 	encoder.ResetWriter(&c.writer)
 
-	return errors.First(
-		encoder.WriteString(id),
-		encoder.WriteString(topic),
-		encoder.WriteData(data),
-		encoder.Flush(),
-	)
+	if err := encoder.WriteString(id); err != nil {
+		return err
+	}
+	if err := encoder.WriteString(topic); err != nil {
+		return err
+	}
+	if err := encoder.WriteData(data); err != nil {
+		return err
+	}
+
+	return encoder.Flush()
 }
 
 func (c *conn) writePing() error {
@@ -337,7 +342,13 @@ func (c *conn) OnFatal(fn func(topic string, data interface{}, panicMsg interfac
 }
 
 func (c *conn) OnClose(fn func(err error)) {
-	c.closeCb = fn
+	c.closeCb = append(c.closeCb, fn)
+}
+
+func (c *conn) callCloseCb(err error) {
+	for _, fn := range c.closeCb {
+		fn(err)
+	}
 }
 
 func (c *conn) Close(context.Context) error {

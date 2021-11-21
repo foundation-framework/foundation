@@ -1,9 +1,9 @@
 package sockets
 
 import (
-	"fmt"
 	"io"
 
+	"github.com/intale-llc/foundation/errors"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -38,7 +38,7 @@ func (e *msgpackEncoder) ReadString() (string, error) {
 func (e *msgpackEncoder) ReadData(data interface{}) error {
 	decodable, ok := data.(msgp.Decodable)
 	if !ok {
-		panic("data is not msgp.Decodable")
+		panic("sockets: data is not msgp.Decodable")
 	}
 
 	if err := decodable.DecodeMsg(e.reader); err != nil {
@@ -58,12 +58,12 @@ func (e *msgpackEncoder) WriteData(data interface{}) error {
 	// Any encoding errors must panic to prevent wrong usage
 	encodable, ok := data.(msgp.Encodable)
 	if !ok {
-		panic("data is not msgp.Encodable")
+		panic("sockets: data is not msgp.Encodable")
 	}
 
 	err := encodable.EncodeMsg(e.writer)
 	if _, ok := err.(msgp.Error); ok {
-		panic(fmt.Errorf("unexpected encoding error: %s", err.Error()))
+		errors.Panicf("sockets: unexpected encoding error: %s", err.Error())
 	}
 
 	return err

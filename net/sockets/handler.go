@@ -20,8 +20,9 @@ type Handler interface {
 	Model() interface{}
 
 	// Serve used to serve message
+	//
 	// Any data returned by this method will be sent back
-	// and trigger ReplyHandler
+	// and trigger reply Handler passed to Write method
 	Serve(ctx context.Context, data interface{}) interface{}
 }
 
