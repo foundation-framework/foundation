@@ -13,19 +13,19 @@ func PackSession(ctx context.Context, client *Session) context.Context {
 }
 
 func UnpackSession(ctx context.Context) *Session {
-	logger, ok := ctx.Value(SessionContextKey).(*Session)
+	session, ok := ctx.Value(SessionContextKey).(*Session)
 	if !ok {
 		return nil
 	}
 
-	return logger
+	return session
 }
 
 func UnpackSessionNamed(ctx context.Context, name string) *Session {
-	logger, ok := ctx.Value(name).(*Session)
+	session, ok := ctx.Value(name).(*Session)
 	if !ok {
 		return nil
 	}
 
-	return logger
+	return session
 }
