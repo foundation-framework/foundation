@@ -20,8 +20,9 @@ var (
 )
 
 type conn struct {
-	inner  *websocket.Conn
-	server *server
+	inner    *websocket.Conn
+	server   *server
+	acceptWg sync.WaitGroup
 
 	pingTicker *time.Ticker
 
@@ -58,6 +59,9 @@ func newConn(inner *websocket.Conn, server *server) sockets.Conn {
 		replyHandlers:   map[string]sockets.Handler{},
 	}
 
+	// For accept function
+	result.acceptWg.Add(1)
+
 	go func() {
 		// Read loop reads and decodes any data in connection
 		result.readMessageLoop()
@@ -69,6 +73,10 @@ func newConn(inner *websocket.Conn, server *server) sockets.Conn {
 	}()
 
 	return result
+}
+
+func (c *conn) Accept() {
+	c.acceptWg.Done()
 }
 
 func (c *conn) LocalAddr() net.Addr {
@@ -108,6 +116,8 @@ func (c *conn) getEncoder() sockets.Encoder {
 }
 
 func (c *conn) readMessageLoop() {
+	c.acceptWg.Wait()
+
 	for {
 		messageType, reader, err := c.inner.NextReader()
 		if err != nil {

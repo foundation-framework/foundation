@@ -3,6 +3,8 @@ package smtp
 import (
 	"bytes"
 	"html/template"
+
+	"github.com/intale-llc/foundation/errors"
 )
 
 func ParseHtmlTemplate(path string, data interface{}) ([]byte, error) {
@@ -22,7 +24,7 @@ func ParseHtmlTemplate(path string, data interface{}) ([]byte, error) {
 func ParseHtmlTemplateMust(path string, data interface{}) []byte {
 	result, err := ParseHtmlTemplate(path, data)
 	if err != nil {
-		panic("smtp: unexpected html parse error: " + err.Error())
+		errors.Panicf("smtp: unexpected html parse error: %v", err)
 	}
 
 	return result
