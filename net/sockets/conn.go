@@ -7,6 +7,8 @@ import (
 
 // Conn describes a real-time connection
 type Conn interface {
+	// Accept method allows the connection to start reading messages
+	Accept()
 
 	// LocalAddr returns local endpoint address
 	LocalAddr() net.Addr

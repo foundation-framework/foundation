@@ -61,19 +61,6 @@ func (s *Session) DropData(key string) {
 	delete(s.data, key)
 }
 
-func (s *Session) Check(fns ...func(c *Session) bool) bool {
-	s.rmux.RLock()
-	defer s.rmux.RUnlock()
-
-	for _, fn := range fns {
-		if !fn(s) {
-			return false
-		}
-	}
-
-	return true
-}
-
 func (s *Session) Join(room string) {
 	if s.hub.Join(s, room) {
 		s.rooms[room] = struct{}{}
