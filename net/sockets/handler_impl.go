@@ -5,29 +5,29 @@ import (
 )
 
 type simpleHandler struct {
-	topic string
-	model interface{}
-	fn    HandlerFunc
+	topic     string
+	model     interface{}
+	handlerFn HandlerFunc
 }
 
-// NewSimpleHandler creates simple Handler
+// NewSimpleHandler creates simple message Handler
 //
-// Always returns context.Background() as context and
+// Always uses context.Background() as context and
 // has only one chained function
 func NewSimpleHandler(
 	topic string,
 	model interface{},
-	fn HandlerFunc,
+	handlerFn HandlerFunc,
 ) Handler {
 	return &simpleHandler{
-		topic: topic,
-		model: model,
-		fn:    fn,
+		topic:     topic,
+		model:     model,
+		handlerFn: handlerFn,
 	}
 }
 
-func (h *simpleHandler) Context() context.Context {
-	return context.Background()
+func (h *simpleHandler) Context(caller func(ctx context.Context)) {
+	caller(context.Background())
 }
 
 func (h *simpleHandler) Topic() string {
@@ -39,30 +39,30 @@ func (h *simpleHandler) Model() interface{} {
 }
 
 func (h *simpleHandler) Serve(ctx context.Context, data interface{}) interface{} {
-	return h.fn(ctx, data)
+	return h.handlerFn(ctx, data)
 }
 
 type simpleReplyHandler struct {
-	model interface{}
-	fn    ReplyHandlerFunc
+	model     interface{}
+	handlerFn ReplyHandlerFunc
 }
 
-// NewSimpleReplyHandler creates simple Handler for handle message reply
+// NewSimpleReplyHandler creates simple message reply Handler
 //
-// Always returns context.Background() as context and
+// Always uses context.Background() as context and
 // has only one chained function
 func NewSimpleReplyHandler(
 	model interface{},
-	fn ReplyHandlerFunc,
+	handlerFn ReplyHandlerFunc,
 ) Handler {
 	return &simpleReplyHandler{
-		model: model,
-		fn:    fn,
+		model:     model,
+		handlerFn: handlerFn,
 	}
 }
 
-func (h *simpleReplyHandler) Context() context.Context {
-	return context.Background()
+func (h *simpleReplyHandler) Context(caller func(ctx context.Context)) {
+	caller(context.Background())
 }
 
 func (h *simpleReplyHandler) Topic() string {
@@ -74,18 +74,18 @@ func (h *simpleReplyHandler) Model() interface{} {
 }
 
 func (h *simpleReplyHandler) Serve(ctx context.Context, data interface{}) interface{} {
-	h.fn(ctx, data)
+	h.handlerFn(ctx, data)
 	return nil
 }
 
 type defaultHandler struct {
-	ctxFn func() context.Context
-	topic string
-	model interface{}
-	fns   []HandlerFunc
+	contextFn  func() context.Context
+	topic      string
+	model      interface{}
+	handlerFns []HandlerFunc
 }
 
-// NewDefaultHandler will create a Handler
+// NewDefaultHandler creates default message Handler
 //
 // Any chained function return non-nil result will stop subsequent
 // calls and call the last function with that result
@@ -93,21 +93,21 @@ type defaultHandler struct {
 // The return value - is the first non-nil value returned
 // by chained functions
 func NewDefaultHandler(
-	ctxFn func() context.Context,
+	contextFn func() context.Context,
 	topic string,
 	model interface{},
-	fns ...HandlerFunc,
+	handlerFns ...HandlerFunc,
 ) Handler {
 	return &defaultHandler{
-		ctxFn: ctxFn,
-		topic: topic,
-		model: model,
-		fns:   fns,
+		contextFn:  contextFn,
+		topic:      topic,
+		model:      model,
+		handlerFns: handlerFns,
 	}
 }
 
-func (h *defaultHandler) Context() context.Context {
-	return h.ctxFn()
+func (h *defaultHandler) Context(caller func(ctx context.Context)) {
+	caller(h.contextFn())
 }
 
 func (h *defaultHandler) Topic() string {
@@ -119,16 +119,73 @@ func (h *defaultHandler) Model() interface{} {
 }
 
 func (h *defaultHandler) Serve(ctx context.Context, data interface{}) interface{} {
-	for i, fn := range h.fns {
-		replyData := fn(ctx, data)
+	for i, handlerFn := range h.handlerFns {
+		replyData := handlerFn(ctx, data)
 
 		if replyData == nil {
 			continue
 		}
 
-		lastIndex := len(h.fns) - 1
+		lastIndex := len(h.handlerFns) - 1
 		if i != lastIndex {
-			h.fns[lastIndex](ctx, replyData)
+			h.handlerFns[lastIndex](ctx, replyData)
+		}
+
+		return replyData
+	}
+
+	// Impossible
+	return nil
+}
+
+type complexHandler struct {
+	contextFn  func(caller func(ctx context.Context))
+	topic      string
+	model      interface{}
+	handlerFns []HandlerFunc
+}
+
+// NewComplexHandler will create a complex message Handler
+//
+// Complex handler is like default message handler
+// but with another context function
+func NewComplexHandler(
+	contextFn func(caller func(ctx context.Context)),
+	topic string,
+	model interface{},
+	handlerFns ...HandlerFunc,
+) Handler {
+	return &complexHandler{
+		contextFn:  contextFn,
+		topic:      topic,
+		model:      model,
+		handlerFns: handlerFns,
+	}
+}
+
+func (h *complexHandler) Context(caller func(ctx context.Context)) {
+	h.contextFn(caller)
+}
+
+func (h *complexHandler) Topic() string {
+	return h.topic
+}
+
+func (h *complexHandler) Model() interface{} {
+	return copyInterfaceValue(h.model)
+}
+
+func (h *complexHandler) Serve(ctx context.Context, data interface{}) interface{} {
+	for i, handlerFn := range h.handlerFns {
+		replyData := handlerFn(ctx, data)
+
+		if replyData == nil {
+			continue
+		}
+
+		lastIndex := len(h.handlerFns) - 1
+		if i != lastIndex {
+			h.handlerFns[lastIndex](ctx, replyData)
 		}
 
 		return replyData

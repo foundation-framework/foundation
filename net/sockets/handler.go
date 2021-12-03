@@ -4,8 +4,8 @@ import "context"
 
 // Handler describes handler for incoming message on the connection
 type Handler interface {
-	// Context returns context that will be passed to Serve method
-	Context() context.Context
+	// Context called first on new message and used to construct context
+	Context(caller func(ctx context.Context))
 
 	// Topic returns listening topic - base routing point
 	//

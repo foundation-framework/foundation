@@ -184,15 +184,17 @@ func (c *conn) readMessage() {
 
 	go func() {
 		defer c.panicCatcher(topic, data)
-		replyData := handler.Serve(handler.Context(), data)
+		handler.Context(func(ctx context.Context) {
+			replyData := handler.Serve(ctx, data)
 
-		if isReplyHandler(handler) || replyData == nil {
-			return
-		}
+			if isReplyHandler(handler) || replyData == nil {
+				return
+			}
 
-		if err := c.writeMessage(id, topic, replyData); err != nil {
-			c.errorCb(err)
-		}
+			if err := c.writeMessage(id, topic, replyData); err != nil {
+				c.errorCb(err)
+			}
+		})
 	}()
 }
 
