@@ -32,7 +32,7 @@ func (h *simpleMessageHandler) Model() interface{} {
 }
 
 func (h *simpleMessageHandler) Serve(data interface{}) interface{} {
-	return h.fn(data)
+	return h.fn(context.Background(), data)
 }
 
 type simpleReplyHandler struct {
@@ -55,19 +55,19 @@ func (h *simpleReplyHandler) Model() interface{} {
 }
 
 func (h *simpleReplyHandler) Serve(data interface{}) {
-	h.fn(data)
+	h.fn(context.Background(), data)
 }
 
 type middlewareMessageHandler struct {
 	topic       string
 	model       interface{}
-	middlewares []func(next MessageHandlerFuncCtx) MessageHandlerFuncCtx
+	middlewares []MessageHandlerMiddleware
 }
 
 func NewMiddlewareMessageHandler(
 	topic string,
 	model interface{},
-	middlewares ...func(next MessageHandlerFuncCtx) MessageHandlerFuncCtx,
+	middlewares ...MessageHandlerMiddleware,
 ) MessageHandler {
 	return &middlewareMessageHandler{
 		topic:       topic,
@@ -85,7 +85,7 @@ func (h *middlewareMessageHandler) Model() interface{} {
 }
 
 func (h *middlewareMessageHandler) Serve(data interface{}) interface{} {
-	handler := MessageHandlerFuncCtx(
+	handler := MessageHandlerFunc(
 		func(ctx context.Context, data interface{}) interface{} {
 			return data
 		},
@@ -101,7 +101,7 @@ func (h *middlewareMessageHandler) Serve(data interface{}) interface{} {
 func copyInterfaceValue(i interface{}) interface{} {
 	if reflect.TypeOf(i).Kind() == reflect.Ptr {
 		return reflect.New(reflect.ValueOf(i).Elem().Type()).Interface()
-	} else {
-		return reflect.New(reflect.TypeOf(i)).Interface()
 	}
+
+	return reflect.New(reflect.TypeOf(i)).Interface()
 }

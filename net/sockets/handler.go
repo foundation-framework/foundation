@@ -28,15 +28,15 @@ type MessageHandler interface {
 }
 
 //
-// MessageHandlerFunc represents MessageHandler.Serve function
-//
-type MessageHandlerFunc func(data interface{}) interface{}
-
-//
-// MessageHandlerFuncCtx represents MessageHandler.Serve function with context
+// MessageHandlerFunc represents MessageHandler.Serve function with context
 // (This type used in handler implementation)
 //
-type MessageHandlerFuncCtx func(ctx context.Context, data interface{}) interface{}
+type MessageHandlerFunc func(ctx context.Context, data interface{}) interface{}
+
+//
+// MessageHandlerMiddleware represents simple middleware for handling message
+//
+type MessageHandlerMiddleware func(next MessageHandlerFunc) MessageHandlerFunc
 
 //
 // ReplyHandler represents handler used to handle replies from MessageHandler
@@ -49,12 +49,12 @@ type ReplyHandler interface {
 }
 
 //
-// ReplyHandlerFunc represents ReplyHandler.Serve function
-//
-type ReplyHandlerFunc func(data interface{})
-
-//
-// ReplyHandlerFuncCtx represents ReplyHandler.Serve function with context
+// ReplyHandlerFunc represents ReplyHandler.Serve function with context
 // (This type used in handler implementation)
 //
-type ReplyHandlerFuncCtx func(ctx context.Context, data interface{})
+type ReplyHandlerFunc func(ctx context.Context, data interface{})
+
+//
+// ReplyHandlerMiddleware represents simple middleware for handling reply
+//
+type ReplyHandlerMiddleware func(next ReplyHandlerFunc) ReplyHandlerFunc
