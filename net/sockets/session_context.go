@@ -8,8 +8,8 @@ const (
 	SessionContextKey = "session"
 )
 
-func PackSession(ctx context.Context, client *Session) context.Context {
-	return context.WithValue(ctx, SessionContextKey, client)
+func PackSession(ctx context.Context, session *Session) context.Context {
+	return context.WithValue(ctx, SessionContextKey, session)
 }
 
 func UnpackSession(ctx context.Context) *Session {

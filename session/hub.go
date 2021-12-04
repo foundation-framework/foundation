@@ -67,7 +67,7 @@ func (p *Hub) Leave(session Session, room string) bool {
 	return true
 }
 
-func (p *Hub) iterateRoom(room string, fn func(client Session)) {
+func (p *Hub) iterateRoom(room string, fn func(session Session)) {
 	p.roomsMutex.RLock()
 	defer p.roomsMutex.RUnlock()
 
@@ -75,8 +75,8 @@ func (p *Hub) iterateRoom(room string, fn func(client Session)) {
 		return
 	}
 
-	for client := range p.rooms[room] {
-		fn(client)
+	for session := range p.rooms[room] {
+		fn(session)
 	}
 
 	return
