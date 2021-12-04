@@ -15,7 +15,7 @@ func NewSimpleMessageHandler(
 	topic string,
 	model interface{},
 	fn MessageHandlerFunc,
-) HandlerBase {
+) MessageHandler {
 	return &simpleMessageHandler{
 		topic: topic,
 		model: model,
@@ -43,7 +43,7 @@ type simpleReplyHandler struct {
 func NewSimpleReplyHandler(
 	model interface{},
 	fn ReplyHandlerFunc,
-) HandlerBase {
+) ReplyHandler {
 	return &simpleReplyHandler{
 		model: model,
 		fn:    fn,
@@ -68,7 +68,7 @@ func NewMiddlewareMessageHandler(
 	topic string,
 	model interface{},
 	middlewares ...func(next MessageHandlerFuncCtx) MessageHandlerFuncCtx,
-) HandlerBase {
+) MessageHandler {
 	return &middlewareMessageHandler{
 		topic:       topic,
 		model:       model,
