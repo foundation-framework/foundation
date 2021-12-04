@@ -6,12 +6,14 @@ import (
 )
 
 type simpleMessageHandler struct {
+	ctx   context.Context
 	topic string
 	model interface{}
 	fn    MessageHandlerFunc
 }
 
 func NewSimpleMessageHandler(
+	ctx context.Context,
 	topic string,
 	model interface{},
 	fn MessageHandlerFunc,
@@ -32,19 +34,22 @@ func (h *simpleMessageHandler) Model() interface{} {
 }
 
 func (h *simpleMessageHandler) Serve(data interface{}) interface{} {
-	return h.fn(context.Background(), data)
+	return h.fn(h.ctx, data)
 }
 
 type simpleReplyHandler struct {
+	ctx   context.Context
 	model interface{}
 	fn    ReplyHandlerFunc
 }
 
 func NewSimpleReplyHandler(
+	ctx context.Context,
 	model interface{},
 	fn ReplyHandlerFunc,
 ) ReplyHandler {
 	return &simpleReplyHandler{
+		ctx:   ctx,
 		model: model,
 		fn:    fn,
 	}
@@ -55,21 +60,24 @@ func (h *simpleReplyHandler) Model() interface{} {
 }
 
 func (h *simpleReplyHandler) Serve(data interface{}) {
-	h.fn(context.Background(), data)
+	h.fn(h.ctx, data)
 }
 
 type middlewareMessageHandler struct {
+	ctx         context.Context
 	topic       string
 	model       interface{}
 	middlewares []MessageHandlerMiddleware
 }
 
 func NewMiddlewareMessageHandler(
+	ctx context.Context,
 	topic string,
 	model interface{},
 	middlewares ...MessageHandlerMiddleware,
 ) MessageHandler {
 	return &middlewareMessageHandler{
+		ctx:         ctx,
 		topic:       topic,
 		model:       model,
 		middlewares: middlewares,
@@ -95,7 +103,7 @@ func (h *middlewareMessageHandler) Serve(data interface{}) interface{} {
 		handler = h.middlewares[i](handler)
 	}
 
-	return handler(context.Background(), data)
+	return handler(h.ctx, data)
 }
 
 func copyInterfaceValue(i interface{}) interface{} {
