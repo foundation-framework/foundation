@@ -30,16 +30,19 @@ type Conn interface {
 
 	// Write writers new message to the connection
 	// Encoder used to encode message, use SetEncoder to change it
-	Write(topic string, data interface{}, handler ...Handler) error
+	Write(topic string, data interface{}) error
+
+	// WriteWithReply does the same as Write but also accepts handler for reply
+	WriteWithReply(topic string, data interface{}, handler ReplyHandler) error
 
 	// SetMessageHandlers sets handler for incoming message
 	// Encoder used to decode message, use SetEncoder to change it
 	//
 	// Multiple handlers allowed
-	SetMessageHandlers(handlers ...Handler)
+	SetMessageHandlers(handlers ...MessageHandler)
 
 	// RemoveMessageHandlers removes specifies message handlers
-	RemoveMessageHandlers(handlers ...Handler)
+	RemoveMessageHandlers(handlers ...MessageHandler)
 
 	// OnError sets callback for non-critical connection errors
 	//

@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"net"
+	"net/http"
+	"reflect"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -24,10 +26,8 @@ type conn struct {
 	server   *server
 	acceptWg sync.WaitGroup
 
-	pingTicker *time.Ticker
-
-	encoder      sockets.Encoder
-	encoderMutex sync.Mutex
+	encoder sockets.Encoder
+	pinger  *time.Ticker
 
 	reader      readerCounter
 	readerMutex sync.Mutex
@@ -39,8 +39,8 @@ type conn struct {
 	errorCb func(err error)
 	fatalCb func(topic string, data interface{}, msg interface{})
 
-	messageHandlers map[string]sockets.Handler
-	replyHandlers   map[string]sockets.Handler
+	messageHandlers map[string]sockets.MessageHandler
+	replyHandlers   map[string]sockets.ReplyHandler
 	handlersMutex   sync.Mutex
 }
 
@@ -50,13 +50,13 @@ func newConn(inner *websocket.Conn, server *server) sockets.Conn {
 		server:  server,
 		encoder: sockets.NewMsgpackEncoder(),
 
-		pingTicker: time.NewTicker(pingTimeout),
+		pinger: time.NewTicker(pingTimeout),
 
 		closeCb: []func(err error){},
 		errorCb: func(err error) {},
 		// fatalCb must be nil to print default messages to terminal
-		messageHandlers: map[string]sockets.Handler{},
-		replyHandlers:   map[string]sockets.Handler{},
+		messageHandlers: map[string]sockets.MessageHandler{},
+		replyHandlers:   map[string]sockets.ReplyHandler{},
 	}
 
 	// For accept function
@@ -102,17 +102,7 @@ func (c *conn) BytesReceived() uint64 {
 }
 
 func (c *conn) SetEncoder(encoder sockets.Encoder) {
-	c.encoderMutex.Lock()
-	defer c.encoderMutex.Unlock()
-
 	c.encoder = encoder
-}
-
-func (c *conn) getEncoder() sockets.Encoder {
-	c.encoderMutex.Lock()
-	defer c.encoderMutex.Unlock()
-
-	return c.encoder
 }
 
 func (c *conn) readMessageLoop() {
@@ -131,7 +121,7 @@ func (c *conn) readMessageLoop() {
 		}
 
 		// Resetting ping timer after any data received (ping messages are included)
-		c.pingTicker.Reset(pingTimeout)
+		c.pinger.Reset(pingTimeout)
 
 		if messageType == websocket.BinaryMessage {
 			c.reader.ResetReader(reader)
@@ -146,7 +136,7 @@ func (c *conn) readPingLoop() {
 	})
 
 	for {
-		<-c.pingTicker.C
+		<-c.pinger.C
 
 		// Important:
 		// If the connection is closed, we will detect it inside the read loop
@@ -165,16 +155,15 @@ func (c *conn) readMessage() {
 	c.readerMutex.Lock()
 	defer c.readerMutex.Unlock()
 
-	encoder := c.getEncoder()
-	encoder.ResetReader(&c.reader)
+	c.encoder.ResetReader(&c.reader)
 
-	id, err := encoder.ReadString()
+	id, err := c.encoder.ReadString()
 	if err != nil {
 		c.errorCb(err)
 		return
 	}
 
-	topic, err := encoder.ReadString()
+	topic, err := c.encoder.ReadString()
 	if err != nil {
 		c.errorCb(err)
 		return
@@ -187,24 +176,29 @@ func (c *conn) readMessage() {
 	}
 
 	data := handler.Model()
-	if err := encoder.ReadData(data); err != nil {
+	if err := c.encoder.ReadData(data); err != nil {
 		c.errorCb(err)
 		return
 	}
 
 	go func() {
 		defer c.panicCatcher(topic, data)
-		handler.Context(func(ctx context.Context) {
-			replyData := handler.Serve(ctx, data)
 
-			if isReplyHandler(handler) || replyData == nil {
+		if handler, ok := handler.(sockets.ReplyHandler); ok {
+			handler.Serve(data)
+			return
+		}
+
+		if handler, ok := handler.(sockets.MessageHandler); ok {
+			replyData := handler.Serve(data)
+			if replyData == nil {
 				return
 			}
 
-			if err := c.writeMessage(id, topic, replyData); err != nil {
+			if err := c.write(id, topic, replyData); err != nil {
 				c.errorCb(err)
 			}
-		})
+		}
 	}()
 }
 
@@ -219,36 +213,35 @@ func (c *conn) panicCatcher(topic string, data interface{}) {
 		return
 	}
 
-	log.Printf("websockets: panic on \"%s\" handler: %s\n%s", topic, msg, string(debug.Stack()))
+	log.Printf(
+		"websockets: panic on \"%s\" handler: %s\n%s",
+
+		topic,
+		msg,
+		string(debug.Stack()),
+	)
 }
 
-func (c *conn) Write(topic string, data interface{}, handler ...sockets.Handler) error {
-	if len(handler) > 1 {
-		return errors.New("more than one reply handler passed")
-	}
-
-	var replyHandler sockets.Handler
-	if len(handler) > 0 && handler[0] != nil {
-		replyHandler = handler[0]
-	}
-
-	if replyHandler != nil && !isReplyHandler(replyHandler) {
-		return errors.New("reply handler must have empty topic")
-	}
-
+func (c *conn) Write(topic string, data interface{}) error {
 	id := rand.UUID()
-	if err := c.writeMessage(id, topic, data); err != nil {
+	if err := c.write(id, topic, data); err != nil {
 		return err
-	}
-
-	if replyHandler != nil {
-		c.setReplyHandler(id, replyHandler)
 	}
 
 	return nil
 }
 
-func (c *conn) writeMessage(id, topic string, data interface{}) error {
+func (c *conn) WriteWithReply(topic string, data interface{}, handler sockets.ReplyHandler) error {
+	id := rand.UUID()
+	if err := c.write(id, topic, data); err != nil {
+		return err
+	}
+
+	c.setReplyHandler(id, handler)
+	return nil
+}
+
+func (c *conn) write(id, topic string, data interface{}) error {
 	c.writerMutex.Lock()
 	defer c.writerMutex.Unlock()
 
@@ -259,8 +252,8 @@ func (c *conn) writeMessage(id, topic string, data interface{}) error {
 
 	c.writer.Reset(writer)
 
-	if err := c.encodeMessage(id, topic, data); err != nil {
-		// encodeMessage can only return network errors that will be handled in readMessageLoop
+	if err := c.writeMessage(id, topic, data); err != nil {
+		// writeMessage can only return network errors that will be handled in readMessageLoop
 		return err
 	}
 
@@ -272,21 +265,20 @@ func (c *conn) writeMessage(id, topic string, data interface{}) error {
 	return nil
 }
 
-func (c *conn) encodeMessage(id, topic string, data interface{}) error {
-	encoder := c.getEncoder()
-	encoder.ResetWriter(&c.writer)
+func (c *conn) writeMessage(id, topic string, data interface{}) error {
+	c.encoder.ResetWriter(&c.writer)
 
-	if err := encoder.WriteString(id); err != nil {
+	if err := c.encoder.WriteString(id); err != nil {
 		return err
 	}
-	if err := encoder.WriteString(topic); err != nil {
+	if err := c.encoder.WriteString(topic); err != nil {
 		return err
 	}
-	if err := encoder.WriteData(data); err != nil {
+	if err := c.encoder.WriteData(data); err != nil {
 		return err
 	}
 
-	return encoder.Flush()
+	return c.encoder.Flush()
 }
 
 func (c *conn) writePing() error {
@@ -296,24 +288,16 @@ func (c *conn) writePing() error {
 	return c.inner.WriteMessage(websocket.PingMessage, nil)
 }
 
-func (c *conn) SetMessageHandlers(handlers ...sockets.Handler) {
+func (c *conn) SetMessageHandlers(handlers ...sockets.MessageHandler) {
 	c.handlersMutex.Lock()
 	defer c.handlersMutex.Unlock()
 
 	for _, handler := range handlers {
-		if !isPointer(handler.Model()) {
-			errors.Panicf("\"%s\" handler: model must be a pointer", handler.Topic())
-		}
-
-		if isReplyHandler(handler) {
-			errors.Panicf("reply handler cannot be used as message handler")
-		}
-
 		c.messageHandlers[handler.Topic()] = handler
 	}
 }
 
-func (c *conn) RemoveMessageHandlers(handlers ...sockets.Handler) {
+func (c *conn) RemoveMessageHandlers(handlers ...sockets.MessageHandler) {
 	c.handlersMutex.Lock()
 	defer c.handlersMutex.Unlock()
 
@@ -322,27 +306,31 @@ func (c *conn) RemoveMessageHandlers(handlers ...sockets.Handler) {
 	}
 }
 
-func (c *conn) setReplyHandler(id string, handler sockets.Handler) {
+func (c *conn) setReplyHandler(id string, handler sockets.ReplyHandler) {
 	c.handlersMutex.Lock()
 	defer c.handlersMutex.Unlock()
 
 	c.replyHandlers[id] = handler
 }
 
-func (c *conn) findHandler(id, topic string) sockets.Handler {
+func (c *conn) findHandler(id, topic string) sockets.HandlerBase {
 	c.handlersMutex.Lock()
 	defer c.handlersMutex.Unlock()
 
-	handler := c.replyHandlers[id]
-
-	if handler == nil {
-		handler = c.messageHandlers[topic]
-	} else {
-		// Automatically remove reply handler
+	replyHandler := c.replyHandlers[id]
+	if replyHandler != nil {
+		// Automatically remove reply replyHandler
 		delete(c.replyHandlers, id)
+
+		return replyHandler
 	}
 
-	return handler
+	messageHandler := c.messageHandlers[topic]
+	if messageHandler != nil {
+		return messageHandler
+	}
+
+	return nil
 }
 
 func (c *conn) OnError(fn func(err error)) {
@@ -371,8 +359,8 @@ func (c *conn) Close(context.Context) error {
 	return nil
 }
 
-func Dial(addr string) (sockets.Conn, error) {
-	conn, _, err := websocket.DefaultDialer.Dial(addr, nil)
+func Dial(addr string, headers http.Header) (sockets.Conn, error) {
+	conn, _, err := websocket.DefaultDialer.Dial(addr, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -380,6 +368,6 @@ func Dial(addr string) (sockets.Conn, error) {
 	return newConn(conn, nil), err
 }
 
-func isReplyHandler(handler sockets.Handler) bool {
-	return handler.Topic() == ""
+func isPointer(i interface{}) bool {
+	return reflect.TypeOf(i).Kind() == reflect.Ptr
 }

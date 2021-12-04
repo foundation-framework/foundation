@@ -15,25 +15,17 @@ type Encoder interface {
 
 	// ReadString reads a string from an underlying reader
 	// Any encoding errors must be returned
-	//
-	// See Handler for more info about messaging system
 	ReadString() (string, error)
 
 	// ReadData reads message data from underlying reader
 	// Any encoding returned by this method
-	//
-	// See Handler for more info about messaging system
 	ReadData(data interface{}) error
 
 	// WriteString writes a string to an underlying writer
 	// Method will panic on any encoding errors
-	//
-	// See Handler for more info about messaging system
 	WriteString(content string) error
 
 	// WriteData writes message data to underlying writer
 	// Method will panic on any encoding errors
-	//
-	// See Handler for more info about messaging system
 	WriteData(data interface{}) error
 }
