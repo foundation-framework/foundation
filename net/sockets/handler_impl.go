@@ -3,6 +3,8 @@ package sockets
 import (
 	"context"
 	"reflect"
+
+	"github.com/intale-llc/foundation/errors"
 )
 
 type simpleMessageHandler struct {
@@ -19,8 +21,9 @@ func NewSimpleMessageHandler(
 	fn MessageHandlerFunc,
 ) MessageHandler {
 	return &simpleMessageHandler{
+		ctx:   ctx,
 		topic: topic,
-		model: model,
+		model: ensurePointer(model),
 		fn:    fn,
 	}
 }
@@ -50,7 +53,7 @@ func NewSimpleReplyHandler(
 ) ReplyHandler {
 	return &simpleReplyHandler{
 		ctx:   ctx,
-		model: model,
+		model: ensurePointer(model),
 		fn:    fn,
 	}
 }
@@ -79,7 +82,7 @@ func NewMiddlewareMessageHandler(
 	return &middlewareMessageHandler{
 		ctx:         ctx,
 		topic:       topic,
-		model:       model,
+		model:       ensurePointer(model),
 		middlewares: middlewares,
 	}
 }
@@ -106,10 +109,14 @@ func (h *middlewareMessageHandler) Serve(data interface{}) interface{} {
 	return handler(h.ctx, data)
 }
 
-func copyInterfaceValue(i interface{}) interface{} {
-	if reflect.TypeOf(i).Kind() == reflect.Ptr {
-		return reflect.New(reflect.ValueOf(i).Elem().Type()).Interface()
+func ensurePointer(i interface{}) interface{} {
+	if reflect.TypeOf(i).Kind() != reflect.Ptr {
+		errors.Panicf("net/sockets: handler model must be a pointer")
 	}
 
-	return reflect.New(reflect.TypeOf(i)).Interface()
+	return i
+}
+
+func copyInterfaceValue(i interface{}) interface{} {
+	return reflect.New(reflect.ValueOf(i).Elem().Type()).Interface()
 }
