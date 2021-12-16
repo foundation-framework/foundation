@@ -23,7 +23,7 @@ var DefaultUpgrader = &Upgrader{
 type server struct {
 	upgrader *Upgrader
 
-	connCb  func(sockets.Conn)
+	connCb  func(sockets.Conn, http.Header)
 	errorCb func(error)
 }
 
@@ -35,7 +35,7 @@ func NewServer(upgrader *Upgrader) sockets.Server {
 	return &server{
 		upgrader: upgrader,
 
-		connCb:  func(sockets.Conn) {},
+		connCb:  func(sockets.Conn, http.Header) {},
 		errorCb: func(error) {},
 	}
 }
@@ -55,11 +55,11 @@ func (l *server) Handler() http.Handler {
 			return
 		}
 
-		l.connCb(newConn(conn, l))
+		l.connCb(newConn(conn, l), r.Header)
 	})
 }
 
-func (l *server) OnConn(fn func(conn sockets.Conn)) {
+func (l *server) OnConn(fn func(conn sockets.Conn, header http.Header)) {
 	l.connCb = fn
 }
 

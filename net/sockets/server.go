@@ -12,7 +12,7 @@ type Server interface {
 	// OnConn sets callback for an incoming connection
 	//
 	// Only one callback allowed, next calls will replace callback
-	OnConn(func(Conn))
+	OnConn(func(Conn, http.Header))
 
 	// OnError sets a callback for non-critical connection errors
 	//
