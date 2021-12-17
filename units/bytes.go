@@ -3,15 +3,15 @@ package units
 import "fmt"
 
 const (
-	Kilobyte int64 = 1024
-	Megabyte       = Kilobyte * 1024
-	Gigabyte       = Megabyte * 1024
-	Terabyte       = Gigabyte * 1024
-	Petabyte       = Terabyte * 1024
-	Exabyte        = Petabyte * 1024
+	Kilobyte uint64 = 1024
+	Megabyte        = Kilobyte * 1024
+	Gigabyte        = Megabyte * 1024
+	Terabyte        = Gigabyte * 1024
+	Petabyte        = Terabyte * 1024
+	Exabyte         = Petabyte * 1024
 )
 
-func FormatBytes(n int64) string {
+func FormatBytes(n uint64) string {
 	if n < Megabyte {
 		return fmt.Sprintf("%.3f KiB", float64(n)/float64(Kilobyte))
 	}
