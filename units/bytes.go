@@ -13,7 +13,7 @@ const (
 
 func FormatBytes(n uint64) string {
 	if n < Megabyte {
-		return fmt.Sprintf("%.3f KiB", float64(n)/float64(Kilobyte))
+		return fmt.Sprintf("%.2f KiB", float64(n)/float64(Kilobyte))
 	}
 
 	if n < Gigabyte {
