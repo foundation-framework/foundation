@@ -13,8 +13,8 @@ type Upgrader websocket.Upgrader
 
 var DefaultUpgrader = &Upgrader{
 	HandshakeTimeout: time.Second * 5,
-	ReadBufferSize:   units.Kilobyte * 65,
-	WriteBufferSize:  units.Kilobyte * 65,
+	ReadBufferSize:   int(units.Kilobyte * 65),
+	WriteBufferSize:  int(units.Kilobyte * 65),
 	CheckOrigin:      func(r *http.Request) bool { return true },
 
 	// Other settings are nil & false
