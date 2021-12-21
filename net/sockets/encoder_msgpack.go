@@ -3,7 +3,7 @@ package sockets
 import (
 	"io"
 
-	"github.com/intale-llc/foundation/errors"
+	"github.com/foundation-framework/foundation/errors"
 	"github.com/tinylib/msgp/msgp"
 )
 

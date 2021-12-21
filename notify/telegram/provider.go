@@ -1,8 +1,8 @@
 package telegram
 
 import (
+	"github.com/foundation-framework/foundation/notify"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/intale-llc/foundation/notify"
 )
 
 type telegram struct {

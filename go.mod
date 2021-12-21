@@ -1,4 +1,4 @@
-module github.com/intale-llc/foundation
+module github.com/foundation-framework/foundation
 
 go 1.17
 

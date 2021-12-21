@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"html/template"
 
-	"github.com/intale-llc/foundation/errors"
+	"github.com/foundation-framework/foundation/errors"
 )
 
 func ParseHtmlTemplate(path string, data interface{}) ([]byte, error) {

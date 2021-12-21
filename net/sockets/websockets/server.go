@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/foundation-framework/foundation/net/sockets"
+	"github.com/foundation-framework/foundation/units"
 	"github.com/gorilla/websocket"
-	"github.com/intale-llc/foundation/net/sockets"
-	"github.com/intale-llc/foundation/units"
 )
 
 type Upgrader websocket.Upgrader

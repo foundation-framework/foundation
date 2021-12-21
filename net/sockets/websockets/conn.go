@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/foundation-framework/foundation/errors"
+	"github.com/foundation-framework/foundation/net/sockets"
+	"github.com/foundation-framework/foundation/rand"
 	"github.com/gorilla/websocket"
-	"github.com/intale-llc/foundation/errors"
-	"github.com/intale-llc/foundation/net/sockets"
-	"github.com/intale-llc/foundation/rand"
 )
 
 var (

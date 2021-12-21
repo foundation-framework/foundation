@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/intale-llc/foundation/rand"
-	"github.com/intale-llc/foundation/session"
+	"github.com/foundation-framework/foundation/rand"
+	"github.com/foundation-framework/foundation/session"
 )
 
 type Session struct {

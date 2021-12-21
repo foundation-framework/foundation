@@ -4,7 +4,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/intale-llc/foundation/errors"
+	"github.com/foundation-framework/foundation/errors"
 )
 
 type fileAttachment struct {

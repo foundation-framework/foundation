@@ -6,8 +6,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 
+	"github.com/foundation-framework/foundation/errors"
 	"github.com/google/uuid"
-	"github.com/intale-llc/foundation/errors"
 )
 
 const (

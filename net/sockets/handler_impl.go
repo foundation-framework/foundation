@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/intale-llc/foundation/errors"
+	"github.com/foundation-framework/foundation/errors"
 )
 
 type simpleMessageHandler struct {
